@@ -16,6 +16,8 @@
       crossorigin="anonymous"
       referrerpolicy="no-referrer"
     />
+    <!-- Add Babel to transpile TypeScript in the browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script type="importmap">
       {
         "imports": {
@@ -86,6 +88,7 @@
       </div>
     </div>
 
-    <script type="module" src="./index.tsx"></script>
+    <!-- Instruct Babel to transpile this script -->
+    <script type="text/babel" data-type="module" src="./index.tsx"></script>
   </body>
 </html>

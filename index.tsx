@@ -56,6 +56,21 @@ let chat: Chat | null = null;
  * Initializes the Gemini AI client and chat session.
  */
 function initializeAI() {
+  // Handle local development where an API key is not expected to be present.
+  if (!process.env.API_KEY) {
+    console.warn("API_KEY not found. AI assistant is disabled for local development.");
+    addBotMessage("The AI assistant is unavailable on this local version, but the portfolio is fully functional!");
+    if (chatInput) {
+      chatInput.placeholder = "AI unavailable locally";
+      chatInput.disabled = true;
+    }
+    if (sendBtn) {
+      sendBtn.disabled = true;
+    }
+    return;
+  }
+
+  // If an API key is found, attempt to initialize the AI.
   try {
     ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
     chat = ai.chats.create({
@@ -66,10 +81,16 @@ function initializeAI() {
     });
     addBotMessage("Hi there! How can I help you explore these projects?");
   } catch (error) {
+    // This handles cases where the key is present but invalid, or other API errors.
     console.error("Failed to initialize AI:", error);
     addBotMessage("Sorry, the AI assistant is currently unavailable.");
-    if(chatInput) chatInput.disabled = true;
-    if(sendBtn) sendBtn.disabled = true;
+    if (chatInput) {
+      chatInput.placeholder = "AI unavailable";
+      chatInput.disabled = true;
+    }
+    if (sendBtn) {
+      sendBtn.disabled = true;
+    }
   }
 }
 
