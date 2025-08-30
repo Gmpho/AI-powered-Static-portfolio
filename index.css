@@ -10,6 +10,7 @@
   --light-gray: #f1f5f9;
   --border-color: #e2e8f0;
   --shadow-color: rgba(0, 0, 0, 0.05);
+  --danger-color: #ef4444;
 }
 
 * {
@@ -353,7 +354,8 @@ body {
   box-shadow: 0 0 0 2px var(--secondary-color);
 }
 
-#chatbot-send {
+#chatbot-send,
+#chatbot-mic {
   background-color: var(--primary-color);
   color: var(--white);
   border: none;
@@ -363,16 +365,26 @@ body {
   font-size: 1.25rem;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background-color 0.3s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-#chatbot-send:hover {
+#chatbot-send:hover,
+#chatbot-mic:hover {
   background-color: #4338ca;
 }
 
-#chatbot-send:disabled {
+#chatbot-send:disabled,
+#chatbot-mic:disabled {
     background-color: #a5b4fc;
     cursor: not-allowed;
+}
+
+#chatbot-mic.is-recording {
+    background-color: var(--danger-color);
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.4);
 }
 
 

@@ -1,5 +1,46 @@
 import { GoogleGenAI, Chat } from "@google/genai";
 
+// Fix: Add type definitions for the Web Speech API to resolve TypeScript errors.
+// The Web Speech API is experimental and types may not be in default TS lib files.
+interface SpeechRecognitionAlternative {
+  readonly transcript: string;
+  readonly confidence: number;
+}
+
+interface SpeechRecognitionResult {
+  readonly isFinal: boolean;
+  readonly length: number;
+  item(index: number): SpeechRecognitionAlternative;
+  [index: number]: SpeechRecognitionAlternative;
+}
+
+interface SpeechRecognitionResultList {
+  readonly length: number;
+  item(index: number): SpeechRecognitionResult;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionEvent extends Event {
+  readonly resultIndex: number;
+  readonly results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  readonly error: string;
+}
+  
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  lang: string;
+  interimResults: boolean;
+  start(): void;
+  stop(): void;
+  onstart: () => void;
+  onend: () => void;
+  onresult: (event: SpeechRecognitionEvent) => void;
+  onerror: (event: SpeechRecognitionErrorEvent) => void;
+}
+
 const projects = [
   {
     title: "AI Resume Analyzer",
@@ -47,30 +88,106 @@ const chatMessages = document.getElementById("chatbot-messages");
 const chatForm = document.getElementById("chatbot-form");
 const chatInput = document.getElementById("chatbot-input") as HTMLInputElement;
 const sendBtn = document.getElementById("chatbot-send") as HTMLButtonElement;
+const micBtn = document.getElementById("chatbot-mic") as HTMLButtonElement;
 
 
 let ai: GoogleGenAI | null = null;
 let chat: Chat | null = null;
 
+// --- Speech Recognition Setup ---
+// FIX: Renamed constant to avoid conflict with the global SpeechRecognition type.
+const SpeechRecognitionAPI =
+  (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+let recognition: SpeechRecognition | null = null;
+let isRecording = false;
+
+if (SpeechRecognitionAPI) {
+  recognition = new SpeechRecognitionAPI();
+  recognition.continuous = false;
+  recognition.lang = 'en-US';
+  recognition.interimResults = true;
+
+  recognition.onstart = () => {
+    isRecording = true;
+    if (micBtn) {
+      micBtn.classList.add('is-recording');
+      micBtn.setAttribute('aria-label', 'Stop recording');
+      micBtn.innerHTML = '<i class="fas fa-stop"></i>';
+    }
+    if (chatInput) {
+      chatInput.placeholder = 'Listening...';
+    }
+  };
+
+  recognition.onend = () => {
+    isRecording = false;
+    if (micBtn) {
+      micBtn.classList.remove('is-recording');
+      micBtn.setAttribute('aria-label', 'Use microphone');
+      micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+    }
+    if (chatInput) {
+      chatInput.placeholder = 'Ask about my projects...';
+    }
+    if (sendBtn && chatInput) {
+        sendBtn.disabled = chatInput.value.trim() === '';
+    }
+  };
+  
+  recognition.onresult = (event) => {
+    let transcript = '';
+    for (let i = event.resultIndex; i < event.results.length; ++i) {
+      transcript += event.results[i][0].transcript;
+    }
+    if (chatInput) {
+      chatInput.value = transcript;
+    }
+    if (sendBtn && chatInput) {
+        sendBtn.disabled = chatInput.value.trim() === '';
+    }
+  };
+
+  recognition.onerror = (event) => {
+    console.error('Speech recognition error:', event.error);
+    if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+      addBotMessage("I need permission to use your microphone. Please enable it in your browser settings.");
+      if (micBtn) {
+        micBtn.disabled = true;
+      }
+    } else if (event.error === 'network') {
+      addBotMessage("Sorry, I'm having trouble connecting to the speech service. Please check your internet connection and try again.");
+    } else {
+      addBotMessage("Sorry, an unknown error occurred with speech recognition. Please try again.");
+    }
+  };
+} else {
+  console.warn("Speech Recognition API not supported in this browser.");
+  if (micBtn) micBtn.style.display = 'none';
+}
+
+/**
+ * Toggles the speech recognition on and off.
+ */
+function toggleSpeechRecognition() {
+    if (!recognition) return;
+
+    if (isRecording) {
+        recognition.stop();
+    } else {
+        try {
+            recognition.start();
+        } catch (e) {
+            console.error("Could not start recognition:", e);
+            addBotMessage("Sorry, I couldn't start listening. Please try again.");
+        }
+    }
+}
+
+
 /**
  * Initializes the Gemini AI client and chat session.
  */
 function initializeAI() {
-  // Handle local development where an API key is not expected to be present.
-  if (!process.env.API_KEY) {
-    console.warn("API_KEY not found. AI assistant is disabled for local development.");
-    addBotMessage("The AI assistant is unavailable on this local version, but the portfolio is fully functional!");
-    if (chatInput) {
-      chatInput.placeholder = "AI unavailable locally";
-      chatInput.disabled = true;
-    }
-    if (sendBtn) {
-      sendBtn.disabled = true;
-    }
-    return;
-  }
-
-  // If an API key is found, attempt to initialize the AI.
   try {
     ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
     chat = ai.chats.create({
@@ -81,16 +198,10 @@ function initializeAI() {
     });
     addBotMessage("Hi there! How can I help you explore these projects?");
   } catch (error) {
-    // This handles cases where the key is present but invalid, or other API errors.
     console.error("Failed to initialize AI:", error);
     addBotMessage("Sorry, the AI assistant is currently unavailable.");
-    if (chatInput) {
-      chatInput.placeholder = "AI unavailable";
-      chatInput.disabled = true;
-    }
-    if (sendBtn) {
-      sendBtn.disabled = true;
-    }
+    if(chatInput) chatInput.disabled = true;
+    if(sendBtn) sendBtn.disabled = true;
   }
 }
 
@@ -212,6 +323,7 @@ async function handleFormSubmit(e: Event) {
 fab?.addEventListener("click", toggleChatWindow);
 closeBtn?.addEventListener("click", toggleChatWindow);
 chatForm?.addEventListener("submit", handleFormSubmit);
+micBtn?.addEventListener("click", toggleSpeechRecognition);
 
 chatInput?.addEventListener('input', () => {
     if (sendBtn) {

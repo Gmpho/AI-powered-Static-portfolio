@@ -16,8 +16,6 @@
       crossorigin="anonymous"
       referrerpolicy="no-referrer"
     />
-    <!-- Add Babel to transpile TypeScript in the browser -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script type="importmap">
       {
         "imports": {
@@ -29,7 +27,7 @@
   <body>
     <div class="container">
       <header class="portfolio-header">
-        <div class="logo">Gift Mpho</div>
+        <div class="logo">Your Name</div>
         <nav>
           <ul>
             <li><a href="#about">About</a></li>
@@ -81,6 +79,9 @@
             aria-label="Your message"
             autocomplete="off"
           />
+          <button type="button" id="chatbot-mic" aria-label="Use microphone">
+            <i class="fas fa-microphone"></i>
+          </button>
           <button type="submit" id="chatbot-send" aria-label="Send message">
             <i class="fas fa-paper-plane"></i>
           </button>
@@ -88,7 +89,6 @@
       </div>
     </div>
 
-    <!-- Instruct Babel to transpile this script -->
-    <script type="text/babel" data-type="module" src="./index.tsx"></script>
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>
