@@ -6,13 +6,7 @@ This document outlines the architecture of the AI-Powered Portfolio. The current
 
 ![Architecture Website Portfolio](architecture%20website%20portfolio.png)
 
-```mermaid
-graph TD
-    A[User] --> B{Browser (SPA)};
-    B --> C[Static HTML/CSS/JS];
-    B --> D{Gemini API};
-    B --> E[localStorage];
-```
+
 
 ## Layers
 
