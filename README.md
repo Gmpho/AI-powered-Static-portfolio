@@ -1,23 +1,34 @@
 # AI-Powered Portfolio
 
-An interactive portfolio website featuring an AI chatbot powered by the Gemini API to answer questions about projects. This project showcases the ability to integrate Google's Generative AI into a modern web application to create an engaging and dynamic user experience.
+An interactive portfolio that leverages a sophisticated AI agent to provide dynamic, persuasive, and monetizable user experiences. This is not a static portfolio; it's an AI-powered application that can orchestrate a variety of tools to answer questions, analyze data, and engage with users.
 
 ## Features
 
--   **Interactive AI Chatbot:** Engage with "G.E.M.", an AI assistant powered by the Gemini API, to get information about projects.
--   **Voice Input:** Use your microphone to ask questions with the integrated Web Speech API.
--   **Responsive Design:** A clean, modern, and fully responsive layout that works on all devices.
--   **Dynamic Project Loading:** Project data is managed in JavaScript and rendered dynamically to the page.
+-   **Conversational AI Agent:** Interact with the "Portfolio Agent," a developer-sidekick powered by the Gemini API and wired into the Model Context Protocol (MCP) SDK.
+-   **Tool-Based Architecture:** The agent can use a variety of tools to perform actions, including:
+    -   Analyzing resumes.
+    -   Searching a vector database (Pinecone) for relevant information.
+    -   Querying a content store (Notion) for project details.
+    -   Sending contact emails.
+-   **Secure & Scalable:** All sensitive API keys are kept on the backend, with the frontend communicating through secure serverless proxy endpoints.
+-   **Automated Testing & Deployment:** The entire application is containerized with Docker and uses a CI/CD pipeline with Playwright and Smithery for validation and deployment.
 
 ## Technology Stack
 
--   **Frontend:** HTML5, CSS3, TypeScript
--   **AI Integration:** Google Gemini API (`@google/genai`)
--   **Speech Recognition:** Web Speech API (experimental browser feature)
+-   **Frontend**: LitElement or React (TypeScript, Vite)
+-   **AI Layer**: Gemini API via `@google/genai` SDK
+-   **Bridge**: MCP SDK (server + client)
+-   **Validation**: Zod schemas for every tool input/output
+-   **Testing**: Playwright for E2E UI & tool chain validation
+-   **Infra**: Docker + Smithery.ai for MCP tool packaging
+-   **Deploy**: GitHub Pages (UI) + Netlify/Vercel/Fly.io Functions (secure API proxies)
+-   **External Tools**:
+    -   Pinecone (vector search / memory)
+    -   Notion (content store for projects + docs)
 
 ## Quick Start
 
-To run this project locally, follow these steps:
+This project requires both a frontend and a backend (MCP Server) component.
 
 1.  **Clone the repository:**
     ```bash
@@ -25,56 +36,22 @@ To run this project locally, follow these steps:
     cd ai-powered-portfolio
     ```
 
-2.  **Set up your Gemini API Key:**
-    This project requires a Google Gemini API key to function. The application is configured to read this key from an environment variable named `API_KEY`.
-    
-    For local development, your deployment or serving tool must make this variable available to the application. When deploying to a hosting provider like Vercel or Netlify, you will set this in the project's environment variable settings. **Do not hardcode your API key in the code.**
+2.  **Set up Backend & Environment Variables:**
+    The backend consists of the MCP Server and proxy functions for external tools (Pinecone, Notion, Gemini). You will need to configure environment variables for each of these services in your chosen deployment environment (e.g., Netlify, Vercel).
+    -   `API_KEY`: Your Google Gemini API key.
+    -   `PINECONE_API_KEY`: Your Pinecone API key.
+    -   `NOTION_API_KEY`: Your Notion API key.
+    -   ...and any other required keys.
 
-3.  **Serve the application:**
-    This application uses ES modules (`import`/`export`) which require it to be served over a local web server to function correctly in the browser. Simply opening the `index.html` file from your file system will not work.
-
-    A simple way to do this is using the VS Code "Live Server" extension or a command-line tool like `serve`.
-
+3.  **Run the application:**
+    The local development environment uses hot-reloading for the MCP tools.
     ```bash
-    # Install serve globally if you don't have it
-    npm install -g serve
-
-    # Run the server from the project's root directory
-    serve
+    # (Example commands)
+    npm run dev
     ```
 
-4.  Open your browser and navigate to the local URL provided by your server (e.g., `http://localhost:3000`).
-
-## Important Environment Variables
-
--   `API_KEY`: **(Required)** Your Google Gemini API key. The AI chatbot will not function without this key.
-
-## Folder Map
-
-Here is a breakdown of the key files and their purpose in the project:
-
--   `index.html`: The main entry point and structure for the web application. It includes the layout for the header, hero section, project display area, and the chatbot widget.
--   `index.css`: Contains all the styling for the application. It uses modern CSS features like custom properties (variables) for easy theming and a responsive design approach.
--   `index.tsx`: The heart of the application, written in TypeScript. This file contains all the client-side logic for:
-    -   Initializing the Gemini API and the chat session.
-    -   Rendering project cards into the DOM.
-    -   Managing all chatbot UI interactions (opening, closing, sending messages).
-    -   Handling user input, including text and voice via the Web Speech API.
-    -   Communicating with the Gemini API to get AI-generated responses.
--   `metadata.json`: Configuration for the web development environment. It specifies necessary permissions, such as microphone access, required for the speech-to-text feature to work.
--   `README.md`: This file! Your comprehensive guide to understanding, setting up, and running the project.
-
-## Code Documentation
-
-The primary logic in `index.tsx` is documented using JSDoc comments. These comments explain the purpose of major functions, variables, and code blocks, making it easier to understand the flow of the application. Developers are encouraged to read these comments to get a deeper insight into the codebase.
-
-## Deployment
-
-This is a static web application and can be deployed to any static site hosting service. Popular choices include:
-
--   Vercel
--   Netlify
--   GitHub Pages
--   Cloudflare Pages
-
-When deploying, remember to configure the `API_KEY` as an environment variable in your hosting provider's dashboard to ensure the application functions correctly in production.
+4.  **Run Tests:**
+    End-to-end tests are run using Playwright.
+    ```bash
+    npm run test:e2e
+    ```

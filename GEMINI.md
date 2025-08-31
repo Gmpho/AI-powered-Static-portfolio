@@ -1,63 +1,37 @@
 # Gemini API Integration Deep Dive
 
-This document provides a detailed look into how the Google Gemini API is integrated into this portfolio application.
+This document provides a detailed look into how the Google Gemini API is integrated into this portfolio application's architecture.
 
-## 1. SDK and Initialization
+## 1. Role in the Architecture: The Reasoning Engine
 
--   **Library:** `@google/genai` (imported via ESM from `esm.run`).
--   **Model:** `gemini-2.5-flash`. This model is chosen for its excellent balance of performance, speed, and cost-effectiveness, making it ideal for a real-time chat application.
--   **Initialization:** The `GoogleGenAI` client is instantiated in the `initializeAI` function. Crucially, the API key is retrieved from `process.env.API_KEY`. This is a placeholder that must be replaced by a secure mechanism in the deployment environment. **It is critical to never hardcode the API key in the source code.**
+In this project, the Gemini API is not just a text generator; it is the **reasoning engine** or the "brain" of the Portfolio Agent. Its primary role is to interpret a user's natural language query and decide which tool (or sequence of tools) should be used to answer it.
 
-```typescript
-// From index.tsx
-ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-```
+-   **SDK:** `@google/genai`
+-   **Model:** `gemini-2.5-flash`. This model is chosen for its excellent balance of performance, speed, and cost-effectiveness, making it ideal for a real-time, tool-choosing agent.
 
-## 2. The Chat Session
+## 2. Secure, Backend-Only Access
 
-Instead of making single, stateless calls, the application uses the `ai.chats.create()` method to establish a persistent chat session.
+A critical aspect of the integration is security. The Gemini API is **only** called from the secure backend environment (the MCP Server or a dedicated serverless proxy function).
 
-### Advantages of a Chat Session
+**Incorrect (Old Architecture):**
+`Frontend Browser -> Google Gemini API`
 
--   **Conversation History:** The SDK automatically manages the conversation history. When you send a follow-up message like "tell me more," the model has the context of the previous turns and can provide a relevant answer.
--   **Simpler API:** You only need to send the new message, not the entire conversation history with each request.
+**Correct (Current Architecture):**
+`Frontend Browser -> MCP Server -> Google Gemini API`
 
-## 3. Prompt Engineering: The System Instruction
+This design ensures the `API_KEY` is never exposed to the client-side, following security best practices.
 
-The "brain" of the G.E.M. AI assistant is its **system instruction**. This is a detailed prompt provided to the model when the chat session is created. It defines the AI's persona, rules, and capabilities.
+## 3. Prompt Engineering for Tool Use
 
-### Key Components of the System Instruction (`projectsContext`)
+The prompts sent to the Gemini model are specifically engineered to facilitate tool use. Instead of just asking the model to *answer* a question, the prompt provides the model with:
 
-1.  **Persona Definition:** "You are 'G.E.M.', a witty and insightful AI guide...". This sets the tone and personality.
-2.  **Core Directives:** A list of rules the AI must follow, such as "Be Enthusiastic & Descriptive," "Ask Clarifying Questions," and "Be Proactive & Suggest Questions." This guides the model's behavior to create a more engaging conversation.
-3.  **Tone of Voice Examples:** Concrete examples are provided to show the AI *how* to respond in certain situations (e.g., when asked about the tech stack). This is a powerful technique known as few-shot prompting.
-4.  **Data Grounding:** The project information is injected directly into the prompt. This ensures the AI's knowledge is limited to the provided data and prevents it from hallucinating or providing incorrect information about the projects.
+1.  **The User's Query:** The original question from the user.
+2.  **A List of Available Tools:** A description of each tool the agent can use (e.g., `resumeAnalyzer`, `notionQuery`) and what it does.
+3.  **Formatting Instructions:** A requirement for the model to respond in a structured format (like JSON) that specifies the tool to call and the parameters to use.
 
-```typescript
-// From index.tsx
-chat = ai.chats.create({
-  model: "gemini-2.5-flash",
-  config: {
-    systemInstruction: projectsContext,
-  },
-});
-```
+### Example Interaction Flow
 
-## 4. Handling Responses and Errors
-
-### Making a Call
-
-The `chat.sendMessage({ message: userMessage })` method is used to send the user's input to the API. This is an asynchronous operation that returns a `Promise`.
-
-### Processing the Response
-
--   The response object (`GenerateContentResponse`) contains the model's output.
--   The most direct way to get the text is via the `response.text` property.
--   The application then takes this text and injects it into the chat UI.
-
-### Error Handling
-
-API calls can fail for various reasons (network issues, invalid API key, etc.). The `sendMessage` call is wrapped in a `try...catch` block.
-
--   If an error occurs, it's logged to the console for debugging.
--   A user-friendly error message is displayed in the chat window ("Oops! I seem to be having a little trouble connecting..."). This ensures a good user experience even when things go wrong.
+1.  **User:** "Can you tell me about the AI Resume Analyzer project?"
+2.  **MCP Server to Gemini:** "The user asked: 'Can you tell me about the AI Resume Analyzer project?'. Available tools are: `notionQuery(databaseId, filter)`, `pineconeSearch(...)`. Please respond with the tool to call in JSON format."
+3.  **Gemini to MCP Server (Response):** `{ "tool": "notionQuery", "parameters": { "databaseId": "...", "filter": { "name": "AI Resume Analyzer" } } }`
+4.  **MCP Server:** The server parses this JSON, validates it with Zod, and executes the `notionQuery` tool with the provided parameters.

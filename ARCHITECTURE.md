@@ -1,56 +1,43 @@
 # Application Architecture
 
-This document outlines the architecture of the AI-Powered Portfolio, a client-side web application with an integrated AI chatbot.
-
-## Overview
-
-The application follows a simple, modern frontend architecture. It is a static single-page application (SPA) where all logic runs in the user's browser. The architecture can be broken down into three main layers:
-
-1.  **Presentation Layer (UI):** The user interface, built with HTML and styled with CSS.
-2.  **Application Logic Layer:** The core logic, written in TypeScript, which manages the UI, user interactions, and state.
-3.  **Service Layer:** The communication layer that interacts with external APIs, primarily the Google Gemini API.
+This document outlines the architecture of the AI-Powered Portfolio, which is built around the **Model Context Protocol (MCP)** to create a robust, tool-using AI agent.
 
 ## Architectural Diagram
 
-For a visual representation of the architecture, please see the Mermaid diagram in [`architecture.mmd`](./architecture.mmd).
+The architecture follows a distributed model where the frontend is decoupled from the backend logic and external services. The data flow is as follows:
 
-## Layer Breakdown
+**Frontend -> AI-Powered Application (MCP SDK) -> Gemini API -> MCP Server -> [Tools: Pinecone, Notion] -> Dockerized Build -> GitHub Pages (CI/CD)**
 
-### 1. Presentation Layer
+This can be broken down into the following layers:
 
--   **Technologies:** HTML5, CSS3
+### 1. Presentation Layer (Frontend)
+
+-   **Technologies:** LitElement or React (TypeScript, Vite).
+-   **Responsibilities:** Provides the user interface for the chat application. It integrates the MCP SDK client to communicate with the backend. It does **not** contain any business logic or sensitive API keys.
+
+### 2. Bridge Layer (MCP SDK)
+
+-   **Technologies:** MCP SDK (client & server).
 -   **Responsibilities:**
-    -   Provides the structural markup for the entire application (`index.html`).
-    -   Defines the visual appearance, responsiveness, and theming (light/dark modes) of the application (`index.css`).
-    -   Uses semantic HTML and ARIA attributes for accessibility.
+    -   **Client-side:** Manages the connection to the MCP Server, sending user prompts and receiving responses.
+    -   **Server-side:** Acts as the orchestration layer. It receives requests from the client, interprets the user's intent (with help from an LLM like Gemini), and invokes the appropriate tools to fulfill the request.
 
-### 2. Application Logic Layer
+### 3. Application Logic Layer (MCP Server & Tools)
 
--   **Technologies:** TypeScript
--   **File:** `index.tsx`
+-   **Technologies:** Node.js, Zod, Docker, Smithery.ai.
 -   **Responsibilities:**
-    -   **DOM Manipulation:** Dynamically renders project cards and chat messages.
-    -   **Event Handling:** Manages all user interactions, such as button clicks (opening the chat, sending messages, toggling the theme) and form submissions.
-    -   **State Management:** Implicitly manages the application's state, such as the visibility of the chat window, the content of the chat input, and the conversation history within the DOM.
-    -   **Speech Recognition:** Interfaces with the browser's Web Speech API to handle voice input.
-    -   **Orchestration:** Acts as the central controller, delegating tasks between the UI and the Service Layer. For example, when a user sends a message, this layer updates the UI, calls the Service Layer to get a response, and then updates the UI again with the AI's message.
+    -   **MCP Server:** The core of the backend. It exposes the tool contracts and executes the logic for each tool.
+    -   **Tools:** These are individual, validated functions that interact with external services. Examples include querying Pinecone, fetching data from Notion, or analyzing a resume. Each tool has a strict input/output schema defined with Zod for validation.
+    -   **Secure Proxies:** All calls to external APIs (Gemini, Pinecone, Notion) are routed through secure serverless proxy endpoints. This ensures API keys are never exposed to the client.
 
-### 3. Service Layer
+### 4. Infrastructure & Deployment
 
--   **Technologies:** `@google/genai` SDK
--   **File:** Integrated within `index.tsx` (in functions like `initializeAI` and `handleChatSubmit`).
+-   **Technologies:** Docker, Smithery.ai, GitHub Actions, GitHub Pages, Netlify/Vercel.
 -   **Responsibilities:**
-    -   **API Abstraction:** Encapsulates the logic for communicating with the Google Gemini API.
-    -   **AI Initialization:** Configures and initializes the `GoogleGenAI` client and the `Chat` session, including setting the crucial system instruction.
-    -   **Data Fetching:** Manages the asynchronous `sendMessage` calls to the Gemini API.
-    -   **Error Handling:** Implements `try...catch` blocks to gracefully handle potential API errors and provides user-friendly feedback.
-
-## Data Flow: A User's Chat Message
-
-1.  **User Action:** The user types a message and clicks "Send" or uses the microphone.
-2.  **Event Listener (Logic Layer):** The `submit` event on the chat form is triggered.
-3.  **UI Update (Logic Layer):** The `handleChatSubmit` function immediately adds the user's message to the chat window and displays a loading indicator.
-4.  **API Call (Service Layer):** The function calls `chat.sendMessage()` with the user's message.
-5.  **External Communication:** The `@google/genai` SDK sends an HTTPS request to the Google Gemini API backend.
-6.  **API Response (Service Layer):** The SDK receives the response, which is awaited in `handleChatSubmit`.
-7.  **UI Update (Logic Layer):** The logic layer removes the loading indicator and renders the AI's response text into a new message bubble in the chat window.
+    -   **Docker:** The entire application, including the MCP server and its tools, is containerized for consistent testing and deployment.
+    -   **Smithery:** A tool used to validate that the MCP tool contracts compile correctly with Zod and that the Playwright tests pass within the Docker container.
+    -   **CI/CD:** A GitHub Actions pipeline automates the entire process:
+        1.  Run Playwright tests.
+        2.  Build the Docker image.
+        3.  Run Smithery for validation.
+        4.  If successful, deploy the static frontend to GitHub Pages and the backend proxy functions to a provider like Netlify or Vercel.

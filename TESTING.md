@@ -1,87 +1,26 @@
-# Testing Strategy
+# Testing Protocol (Playwright)
 
-This document outlines a testing strategy for ensuring the quality, reliability, and correctness of the AI-Powered Portfolio application. While the current project does not have an automated test suite, this serves as a guide for future implementation.
+The project relies on end-to-end (E2E) testing using Playwright to ensure the entire system, from the UI to the tool chain, works correctly.
 
-## 1. Testing Pyramid
+## Core Testing Workflow
 
-We will adopt the standard testing pyramid model, which emphasizes having a large base of fast, simple unit tests, followed by fewer integration tests, and a very small number of slow, comprehensive end-to-end tests.
+The primary test workflow simulates a complete user interaction, validating each step of the architecture:
 
-```
-      / \
-     / E2E \
-    /-------\
-   / Integration \
-  /---------------\
- /   Unit Tests    \
-/-------------------\
-```
+1.  **Spin up Dev Server:** The Playwright test runner first starts the local development server on `localhost:3000`.
+2.  **User Sends Chat:** The test script simulates a user typing a message into the chat input and submitting it.
+3.  **MCP Client Request:** Playwright verifies that the frontend (MCP client) successfully sends the request to the backend.
+4.  **MCP Server Invocation:** The test environment (using mocks for external services) confirms that the MCP server receives the request and invokes the correct tool.
+5.  **Tool Calls Proxy:** The test asserts that the tool attempts to call the correct secure proxy endpoint.
+6.  **Response Displayed:** Playwright checks that the final, mocked response from the tool is correctly displayed in the chat UI on the frontend.
 
-## 2. Unit Tests
+## Key E2E Test Scenarios
 
--   **Goal:** To test individual functions and components in isolation.
--   **Tools:** [Jest](https://jestjs.io/) (test runner), [Testing Library](https://testing-library.com/) (for utility functions interacting with the DOM).
--   **What to Test:**
-    -   **Helper Functions:**
-        -   `addMessage()`: Does it correctly create a DOM element with the right classes and content for 'user', 'bot', and 'loading' states?
-        -   `setTheme()`: Does it correctly set the `data-theme` attribute on the `documentElement` and update `localStorage`?
-    -   **UI Logic:**
-        -   Test the logic that enables/disables the send button based on input.
+The test suite must include, at a minimum, the following E2E tests to validate the core tool functionality:
 
-### Example Unit Test (using Jest)
+-   **“List my projects”:**
+    -   **Trigger:** User sends the message "List my projects".
+    -   **Expected Result:** The `Project Metadata` tool is called, and the test asserts that the response displayed in the UI includes the names and descriptions of the portfolio projects.
 
-```javascript
-// A hypothetical test for the addMessage function
-describe('addMessage', () => {
-  it('should create a user message element', () => {
-    document.body.innerHTML = '<div id="chatbot-messages"></div>';
-    const chatMessages = document.getElementById('chatbot-messages');
-    
-    addMessage('Hello', 'user');
-
-    const messageEl = chatMessages.querySelector('.message.user');
-    expect(messageEl).not.toBeNull();
-    expect(messageEl.textContent).toBe('Hello');
-  });
-});
-```
-
-## 3. Integration Tests
-
--   **Goal:** To test how multiple components work together.
--   **Tools:** Jest, Testing Library.
--   **What to Test:**
-    -   **Chat Form Interaction:**
-        -   Verify that typing in the input enables the send button.
-        -   Verify that submitting the form calls the `handleChatSubmit` function and adds the user's message to the message list.
-    -   **AI Chat Flow (with Mocks):**
-        -   Test the complete flow of sending a message and receiving a response.
-        -   This requires **mocking the Gemini API**. We do not want to make real API calls in our tests. We would mock the `chat.sendMessage` method to return a predefined response immediately.
-        -   Verify that a loading indicator appears and is then replaced by the mocked bot response.
-
-## 4. End-to-End (E2E) Tests
-
--   **Goal:** To test the entire application flow from a user's perspective, running in a real browser.
--   **Tools:** [Cypress](https://www.cypress.io/) or [Playwright](https://playwright.dev/).
--   **What to Test (Key User Journeys):**
-    1.  **Full Chat Conversation:**
-        -   Open the page.
-        -   Click the FAB to open the chat window.
-        -   Send a message.
-        -   Assert that the user's message appears.
-        -   Assert that a bot response appears (this would likely test against a mocked backend to ensure consistent results and avoid costs).
-        -   Close the chat window.
-    2.  **Theme Toggling:**
-        -   Click the theme toggle button.
-        -   Assert that the `data-theme` attribute on the `<html>` element changes.
-        -   Assert that element colors change as expected.
-
-## 5. Manual & Accessibility Testing
-
--   **Goal:** To catch issues not easily automated and ensure the application is usable by everyone.
--   **Tools:** Browser DevTools, screen readers (VoiceOver, NVDA), Axe DevTools.
--   **Checklist:**
-    -   Verify cross-browser compatibility (Chrome, Firefox, Safari).
-    -   Test on different screen sizes (desktop, tablet, mobile).
-    -   Ensure all interactive elements are keyboard-navigable.
-    -   Check for sufficient color contrast.
-    -   Verify all images and icons have appropriate `alt` text or `aria-label`s.
+-   **“Analyze my resume”:**
+    -   **Trigger:** User sends a message like "Analyze my resume" and provides resume text.
+    -   **Expected Result:** The `Resume Analyzer` tool is called, and the test asserts that the response displayed in the UI includes distinct sections for "strengths" and "weaknesses".

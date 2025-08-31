@@ -1,54 +1,26 @@
 # MCP (Model Control Plane)
 
-This document outlines the concept of a Model Control Plane (MCP) as a potential future enhancement for managing AI interactions within the portfolio application.
+The Model Control Plane (MCP) is the core architectural component of this application. It is not a future enhancement but the central nervous system that enables the AI Portfolio Agent to function. It is implemented using the MCP SDK.
 
-## What is an MCP?
+## Role in the Architecture
 
-A Model Control Plane (MCP) is a conceptual architectural layer or service responsible for orchestrating and managing all interactions with Large Language Models (LLMs) and other AI services. It acts as a centralized gateway between the application's frontend and the various AI models.
+The MCP acts as the intelligent bridge between the client-side application and the complex world of AI models, tools, and external services.
 
-In the current architecture, the frontend communicates directly with the Gemini API. An MCP would introduce an intermediary layer to add more advanced capabilities.
+**Current Architecture:**
+`Frontend <-> MCP SDK <-> MCP Server <-> [Gemini API, Tools, External Services]`
 
-## Core Responsibilities of an MCP
+### Core Responsibilities of the MCP
 
-1.  **Model Routing & Abstraction:**
-    -   The frontend makes a generic request to the MCP, not a specific model.
-    -   The MCP can route the request to the best model for the job (e.g., `gemini-2.5-flash` for chat, `imagen-4.0-generate-001` for image generation, or even a fine-tuned model). This makes it easy to swap models in the backend without changing the client-side code.
+1.  **Tool Orchestration:**
+    -   The primary role of the MCP is to manage and orchestrate a suite of tools (e.g., Pinecone search, Notion queries).
+    -   When the frontend sends a user prompt, the MCP Server, in conjunction with the Gemini model, determines the user's intent and decides which tool (or sequence of tools) to execute to fulfill the request.
 
-2.  **Prompt Management & Templating:**
-    -   Centralize the storage and versioning of prompts and system instructions.
-    -   Dynamically insert data into prompt templates before sending them to the model. This is useful for A/B testing different prompts to see which performs better.
+2.  **Secure API Gateway:**
+    -   The MCP server acts as a secure gateway. The frontend communicates with the MCP, and the MCP server, running in a secure backend environment, makes the calls to external services like the Gemini API, Pinecone, etc.
+    -   This design ensures that sensitive API keys are never exposed on the client-side.
 
-3.  **Security & Credential Management:**
-    -   The MCP securely stores all API keys. The client-side application never has access to these keys, significantly improving security.
-    -   It can enforce authentication and authorization, ensuring only legitimate requests are processed.
+3.  **Contract Enforcement (with Zod):**
+    -   The MCP enforces a strict contract for every tool. It uses Zod schemas to validate all inputs before executing a tool and all outputs before sending a response back to the client. This ensures data integrity and prevents unexpected errors.
 
-4.  **Caching & Performance:**
-    -   Implement a caching layer to store responses for common queries. This reduces latency and lowers API costs. For example, if many users ask "What is the AI Resume Analyzer?", the answer can be served from the cache after the first request.
-
-5.  **Logging, Monitoring & Analytics:**
-    -   Log all requests and responses for debugging and analysis.
-    -   Track key metrics like response time, cost per query, and common user questions. This data is invaluable for improving the AI's performance and user experience.
-
-6.  **Guardrails & Content Moderation:**
-    -   Implement pre-processing and post-processing steps to filter out inappropriate content, enforce brand safety, and ensure the AI's responses align with predefined guidelines.
-
-## MCP in the Context of the AI Portfolio
-
-Implementing an MCP for this project would involve creating a backend service (e.g., using Node.js and Express, or serverless functions).
-
-### Architectural Shift
-
-**Current:**
-`Frontend -> Google Gemini API`
-
-**With MCP:**
-`Frontend -> MCP Service -> Google Gemini API (or other models)`
-
-### Benefits
-
--   **Enhanced Security:** The API key is moved from the client environment to a secure backend.
--   **Flexibility:** Easily experiment with different models (e.g., GPT-4, Claude) or prompts without deploying new frontend code.
--   **Cost Savings:** Caching can dramatically reduce the number of API calls.
--   **Insight:** Analytics provide a clear picture of how users are interacting with the AI.
-
-While a full-fledged MCP might be overkill for the current version of the portfolio, it represents a scalable, enterprise-grade approach to building and managing AI-powered applications.
+4.  **Decoupling Frontend from Backend Logic:**
+    -   By using the MCP, the frontend is completely decoupled from the backend business logic. The frontend only needs to know how to talk to the MCP SDK client. New tools or complex workflows can be added to the backend without requiring any changes to the frontend code. This makes the application highly modular and scalable.
