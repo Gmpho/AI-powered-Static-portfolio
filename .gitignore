@@ -24,3 +24,10 @@ dist-ssr
 *.sw?
 *.tmp
 *.mcp
+
+# Environment variables - IMPORTANT
+.env
+.env.local
+.env.*.local
+.env.test
+.env.production
