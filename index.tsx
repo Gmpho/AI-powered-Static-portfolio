@@ -459,7 +459,11 @@ async function findBestProjectMatch(
 async function initializeAI() {
   const loadingMessage = addMessage("Initializing AI and preparing project search...", "loading");
   try {
-    // Fix: Updated API key initialization to use `process.env.API_KEY` as required by the coding guidelines.
+    // Explicitly check for API key
+    if (!process.env.API_KEY) {
+      throw new Error("API key is missing. Chatbot cannot be initialized.");
+    }
+
     ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     await indexProjects();
     loadingMessage.remove();
@@ -470,6 +474,9 @@ async function initializeAI() {
     addBotMessage("Sorry, the AI assistant is currently unavailable.");
     if(chatInput) chatInput.disabled = true;
     if(sendBtn) sendBtn.disabled = true;
+    // Also disable the FAB if the chatbot is unavailable
+    const fab = document.getElementById("chatbot-fab");
+    if (fab) fab.style.display = 'none';
   }
 }
 
