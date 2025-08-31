@@ -1,35 +1,31 @@
-# CI/CD Pipeline: The Deploy Loop
+# CI/CD Pipeline: A Recommended Approach
 
-The project uses a robust, automated Continuous Integration and Continuous Deployment (CI/CD) pipeline managed via GitHub Actions. The pipeline is designed to ensure code quality, contract validity, and successful deployments.
+While this project does not have a pre-configured CI/CD pipeline, this document outlines a recommended approach for setting up an automated Continuous Integration and Continuous Deployment (CI/CD) workflow using modern best practices.
 
-## 📦 DOCKER + SMITHERY
+## 📦 DOCKER: The Foundation
 
-The foundation of the CI/CD process is containerization and validation.
+The foundation of a reliable CI/CD process is the project's `Dockerfile`.
 
--   **Docker:** The entire application (including the Node.js backend for the MCP server) is containerized using a `node:20-alpine` base image for a small, secure footprint.
--   **Smithery:** The Smithery.ai tool is used as a critical validation step. It is configured via `smithery.config.json` to:
-    1.  Verify that all MCP tool contracts (defined in `/mcp/tools/*.ts`) compile correctly with their Zod schemas.
-    2.  Execute the full Playwright E2E test suite from within the Docker container to ensure the application works in a production-like environment.
-    3.  Confirm that the Docker image builds cleanly without errors.
+-   **Docker:** The application is containerized using a multi-stage `Dockerfile`. The first stage uses a `node:20-alpine` image to build the static assets, and the second stage copies these assets into a lightweight `nginx:stable-alpine` image for serving. This process creates a small, secure, and performant final image, which is ideal for deployment.
 
-## 🔁 DEPLOY LOOP
+## 🔁 Recommended Deploy Loop
 
-The deployment process follows a well-defined loop, from local development to production.
+A typical deployment process for this application would follow this loop:
 
 1.  **Local Development:**
-    -   Developers run the application locally using `npm run dev`.
-    -   This environment includes hot-reloading for the MCP tools, allowing for rapid iteration.
+    -   Developers run the application locally using a dev server like `vite`.
+    -   Code is committed to a Git repository (e.g., on GitHub).
 
-2.  **Automated Testing:**
-    -   Before committing, developers can run the E2E test suite locally with `npm run test:e2e`.
-    -   This same command is run by the CI server.
+2.  **CI Pipeline (on push to `main` branch):**
+    -   A service like GitHub Actions would trigger a new workflow.
+    -   **Step 1: Build & Test (Future Enhancement):** The CI job would first install dependencies (`npm install`) and run any tests (e.g., linting, unit tests, or end-to-end tests with a tool like Playwright).
+    -   **Step 2: Build Docker Image:** The pipeline would build the production Docker image using the `docker build` command. It is crucial to securely provide the `VITE_API_KEY` as a build argument or secret.
+        ```bash
+        docker build --build-arg VITE_API_KEY="${{ secrets.VITE_API_KEY }}" -t ai-portfolio .
+        ```
+    -   **Step 3: Push to Container Registry:** If the build is successful, the Docker image is tagged and pushed to a container registry like Docker Hub, Google Container Registry (GCR), or GitHub Container Registry (GHCR).
 
-3.  **CI Pipeline (on push to `main`):**
-    -   **Build Docker Image:** The CI job starts by building the production Docker image using `docker build . -t ai-portfolio`.
-    -   **Run Smithery Validation:** The pipeline then executes Smithery, which runs the critical validation steps (Zod compilation, Playwright tests) inside the newly built container.
-    -   **Conditional Deploy:** The deployment step only proceeds if the Smithery validation is successful (i.e., returns a "green" status).
-
-4.  **GitHub Actions Deployment:**
-    -   **UI Deployment:** The static frontend assets are deployed to GitHub Pages.
-    -   **Proxy Deployment:** The backend serverless proxy functions (for Gemini, Pinecone, etc.) are deployed to a provider like Netlify, Vercel, or Fly.io.
-    -   **Docs Publishing:** Any generated documentation is published to the `/docs` folder on the GitHub Pages site.
+3.  **CD (Continuous Deployment):**
+    -   **Deployment:** The final step is deploying the container. This could be configured in several ways:
+        -   **Static Site Host:** For a purely client-side application, the build artifacts could be deployed directly to a static host like GitHub Pages, Netlify, or Vercel.
+        -   **Container Host:** The Docker image from the registry could be deployed to a container hosting service like Google Cloud Run, AWS App Runner, or Fly.io. This is a robust approach that makes use of the provided `Dockerfile`.

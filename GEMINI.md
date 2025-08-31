@@ -2,36 +2,33 @@
 
 This document provides a detailed look into how the Google Gemini API is integrated into this portfolio application's architecture.
 
-## 1. Role in the Architecture: The Reasoning Engine
+## 1. Role in the Architecture: The Conversational Engine
 
-In this project, the Gemini API is not just a text generator; it is the **reasoning engine** or the "brain" of the Portfolio Agent. Its primary role is to interpret a user's natural language query and decide which tool (or sequence of tools) should be used to answer it.
+In this project, the Gemini API is the **conversational engine** of the AI Assistant. Its primary role is to understand user messages within the context of a conversation and generate helpful, relevant, and in-character responses.
 
 -   **SDK:** `@google/genai`
--   **Model:** `gemini-2.5-flash`. This model is chosen for its excellent balance of performance, speed, and cost-effectiveness, making it ideal for a real-time, tool-choosing agent.
+-   **Model:** `gemini-2.5-flash`. This model is chosen for its excellent balance of performance, speed, and cost-effectiveness, making it ideal for a real-time chat application.
 
-## 2. Secure, Backend-Only Access
+## 2. API Access Model: Client-Side
 
-A critical aspect of the integration is security. The Gemini API is **only** called from the secure backend environment (the MCP Server or a dedicated serverless proxy function).
+A critical aspect of the integration is how the application accesses the API.
 
-**Incorrect (Old Architecture):**
+**Current Architecture:**
 `Frontend Browser -> Google Gemini API`
 
-**Correct (Current Architecture):**
-`Frontend Browser -> MCP Server -> Google Gemini API`
+In the current implementation, the Gemini API is called **directly from the client-side code** running in the user's browser. The API key is embedded into the application at build time.
 
-This design ensures the `API_KEY` is never exposed to the client-side, following security best practices.
+> **⚠️ Security Warning:** This client-side approach is suitable for development and demonstration purposes only. It is **not secure for production** because the API key can be extracted from the application's code. For a production environment, all API calls should be routed through a secure backend proxy.
 
-## 3. Prompt Engineering for Tool Use
+## 3. Prompt Engineering and Logic
 
-The prompts sent to the Gemini model are specifically engineered to facilitate tool use. Instead of just asking the model to *answer* a question, the prompt provides the model with:
+The application uses a combination of prompt engineering and client-side logic to function.
 
-1.  **The User's Query:** The original question from the user.
-2.  **A List of Available Tools:** A description of each tool the agent can use (e.g., `resumeAnalyzer`, `notionQuery`) and what it does.
-3.  **Formatting Instructions:** A requirement for the model to respond in a structured format (like JSON) that specifies the tool to call and the parameters to use.
+1.  **System Prompt:** A detailed system prompt is provided to the Gemini model to establish the AI's persona ("AG Gift."), its core directives, and the project data it can talk about. This guides the tone and content of its conversational responses.
 
-### Example Interaction Flow
+2.  **Conversational History:** To maintain context, the application sends the last 5 turns (10 messages) of the conversation with each new user prompt. This allows the model to remember what was discussed previously and provide coherent follow-up answers.
 
-1.  **User:** "Can you tell me about the AI Resume Analyzer project?"
-2.  **MCP Server to Gemini:** "The user asked: 'Can you tell me about the AI Resume Analyzer project?'. Available tools are: `notionQuery(databaseId, filter)`, `pineconeSearch(...)`. Please respond with the tool to call in JSON format."
-3.  **Gemini to MCP Server (Response):** `{ "tool": "notionQuery", "parameters": { "databaseId": "...", "filter": { "name": "AI Resume Analyzer" } } }`
-4.  **MCP Server:** The server parses this JSON, validates it with Zod, and executes the `notionQuery` tool with the provided parameters.
+3.  **Keyword-Based Logic (Not LLM Tool Use):** The application does **not** currently use the LLM to decide which "tool" to use. Instead, it uses simple JavaScript logic to check the user's message for keywords:
+    -   If the message contains "search" or "find", the application runs its own semantic search function.
+    -   If the message contains "contact" or "message", it displays the contact form.
+    -   If neither of these conditions is met, it sends the message to the Gemini API for a standard conversational response.

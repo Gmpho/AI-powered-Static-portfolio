@@ -1,4 +1,4 @@
-import { GoogleGenAI, Chat } from "@google/genai";
+import { GoogleGenAI, Type, Content } from "@google/genai";
 
 // Fix: Add type definitions for the Web Speech API to resolve TypeScript errors.
 // The Web Speech API is experimental and types may not be in default TS lib files.
@@ -95,7 +95,7 @@ interface ProjectMetadata {
  * @type {string}
  */
 const projectsContext = `
-You are "G.E.M.", a witty and insightful AI guide for Gift Mpho's personal portfolio website. 
+A delightful and insightful AI guide for Gift Mpho's personal portfolio website. 
 Your persona is that of a tech-savvy, enthusiastic, and slightly playful assistant.
 Your primary mission is to showcase Gift's projects in the best possible light and engage visitors in a memorable way.
 This portfolio has a semantic search function that you are not responsible for. If the user asks you to find or search for a project, the system will handle it.
@@ -135,8 +135,9 @@ const themeToggleBtn = document.getElementById('theme-toggle');
 
 
 let ai: GoogleGenAI | null = null;
-let chat: Chat | null = null;
+let conversationHistory: Content[] = [];
 let projectEmbeddings: Map<ProjectMetadata, number[]> = new Map();
+let lastSpeechConfidence: number | null = null;
 
 
 // --- Speech Recognition Setup ---
@@ -181,11 +182,17 @@ if (SpeechRecognitionAPI) {
   
   recognition.onresult = (event) => {
     let transcript = '';
+    // The SpeechRecognition API can provide multiple results.
+    // We will concatenate them.
     for (let i = event.resultIndex; i < event.results.length; ++i) {
-      transcript += event.results[i][0].transcript;
+        transcript += event.results[i][0].transcript;
+        // If this is the final result, capture its confidence.
+        if (event.results[i].isFinal) {
+            lastSpeechConfidence = event.results[i][0].confidence;
+        }
     }
     if (chatInput) {
-      chatInput.value = transcript;
+        chatInput.value = transcript;
     }
     if (sendBtn && chatInput) {
         sendBtn.disabled = chatInput.value.trim() === '';
@@ -248,10 +255,42 @@ async function projectMetadataTool(): Promise<{ projects: ProjectMetadata[] }> {
     });
 }
 
+/**
+ * The response schema for the contactEmail tool.
+ */
+interface ContactEmailResponse {
+  status: 'sent' | 'failed';
+  info?: string;
+}
+
+/**
+ * Simulates the 'contactEmail' MCP tool.
+ * @param {string} name The user's name.
+ * @param {string} email The user's email.
+ * @param {string} message The user's message.
+ * @returns {Promise<ContactEmailResponse>} The status of the email sending operation.
+ */
+async function contactEmailTool(name: string, email: string, message: string): Promise<ContactEmailResponse> {
+    console.log(`Simulating sending email:`, { name, email, message });
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    if (!name || !email || !message || !email.includes('@')) {
+        return { status: 'failed', info: 'Please fill out all fields correctly.' };
+    }
+
+    // Simulate random success for demonstration
+    if (Math.random() > 0.1) { // 90% success rate
+        return { status: 'sent' };
+    } else {
+        return { status: 'failed', info: 'An unknown server error occurred.' };
+    }
+}
+
 
 /**
  * Generates a vector embedding for a given text using the Gemini API.
- * This is a simulation of a proper embedding model.
+ * This function includes robust parsing to handle variations in the API response.
  * @param {string} text The text to embed.
  * @returns {Promise<number[]>} A promise that resolves to a vector (array of numbers).
  */
@@ -261,15 +300,58 @@ async function generateEmbedding(text: string): Promise<number[]> {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: `Generate a 768-dimension vector embedding for the following text. Respond ONLY with a JSON array of numbers. Text: "${text}"`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.NUMBER,
+            }
+        }
+      }
     });
-    const jsonString = response.text.match(/\[.*?\]/s)?.[0];
-    if (!jsonString) {
-      throw new Error("Failed to extract JSON array from response.");
+    
+    const responseText = response.text;
+    // Find the start of the JSON array.
+    const startIndex = responseText.indexOf('[');
+    if (startIndex === -1) {
+      throw new Error(`Could not find the start of a JSON array in the response. Text: "${responseText}"`);
     }
-    return JSON.parse(jsonString);
+
+    // Find the matching closing bracket to avoid including trailing text.
+    let openBrackets = 0;
+    let endIndex = -1;
+    // Start searching from the beginning of the potential array.
+    for (let i = startIndex; i < responseText.length; i++) {
+      if (responseText[i] === '[') {
+        openBrackets++;
+      } else if (responseText[i] === ']') {
+        openBrackets--;
+      }
+      // When openBrackets becomes 0, we've found the matching closing bracket.
+      if (openBrackets === 0) {
+        endIndex = i;
+        break;
+      }
+    }
+
+    if (endIndex === -1) {
+      // This happens if the response is truncated and the array is not closed.
+      throw new Error(`Could not find the end of the JSON array in the response (it may be truncated). Text: "${responseText}"`);
+    }
+
+    // Extract the JSON string from start to the matched end.
+    const jsonStr = responseText.substring(startIndex, endIndex + 1);
+    const vector = JSON.parse(jsonStr);
+
+    if (Array.isArray(vector) && vector.every(n => typeof n === 'number')) {
+        return vector;
+    } else {
+        throw new Error("Parsed JSON is not a valid number array.");
+    }
   } catch (error) {
     console.error("Failed to generate embedding:", error);
-    // Return a zero vector as a fallback
+    // Return a zero vector as a fallback for any failure.
     return Array(768).fill(0);
   }
 }
@@ -290,6 +372,7 @@ function cosineSimilarity(vecA: number[], vecB: number[]): number {
 
 /**
  * Indexes all projects by fetching them from the tool and storing their embeddings.
+ * This pre-computation optimizes search performance.
  */
 async function indexProjects() {
   console.log("Indexing projects...");
@@ -303,40 +386,84 @@ async function indexProjects() {
 }
 
 /**
- * Simulates searching a vector database like Pinecone.
+ * Calculates a hybrid search score combining semantic similarity and keyword matching.
+ * @param {string} query The user's query text.
+ * @param {ProjectMetadata} project The project to score.
+ * @param {number[]} queryVector The vector for the user's query.
+ * @param {number[]} projectVector The vector for the project.
+ * @param {number | null} confidence The speech recognition confidence score.
+ * @returns {number} The combined hybrid score.
+ */
+function calculateHybridScore(
+    query: string,
+    project: ProjectMetadata,
+    queryVector: number[],
+    projectVector: number[],
+    confidence: number | null
+): number {
+    // 1. Calculate semantic score (cosine similarity)
+    const semanticScore = cosineSimilarity(queryVector, projectVector);
+
+    // 2. Calculate keyword score based on tag matching
+    let keywordScore = 0;
+    const lowerCaseQuery = query.toLowerCase();
+    for (const tag of project.tags) {
+        if (lowerCaseQuery.includes(tag.toLowerCase())) {
+            keywordScore += 1;
+        }
+    }
+    // Normalize keyword score
+    const normalizedKeywordScore = project.tags.length > 0 ? keywordScore / project.tags.length : 0;
+
+    // 3. Determine weights based on confidence
+    // High confidence or typed input: prioritize semantic search.
+    // Low confidence: give more weight to keywords as semantics may be inaccurate.
+    const semanticWeight = (confidence === null || confidence > 0.7) ? 0.7 : 0.4;
+    const keywordWeight = 1 - semanticWeight;
+
+    // 4. Calculate final hybrid score
+    const hybridScore = (semanticWeight * semanticScore) + (keywordWeight * normalizedKeywordScore);
+    
+    return hybridScore;
+}
+
+
+/**
+ * Searches for the best project match using a hybrid scoring model.
+ * @param {string} query The user's search query text.
  * @param {number[]} queryVector The vector of the user's search query.
+ * @param {number | null} confidence The speech recognition confidence score.
  * @returns {Promise<ProjectMetadata | null>} The project with the highest similarity score.
  */
-async function pineconeSearch(queryVector: number[]): Promise<ProjectMetadata | null> {
-  let bestMatch: ProjectMetadata | null = null;
-  let highestSimilarity = -1;
+async function findBestProjectMatch(
+    query: string,
+    queryVector: number[],
+    confidence: number | null
+): Promise<ProjectMetadata | null> {
+    let bestMatch: ProjectMetadata | null = null;
+    let highestScore = -1;
 
-  for (const [project, projectVector] of projectEmbeddings.entries()) {
-    const similarity = cosineSimilarity(queryVector, projectVector);
-    if (similarity > highestSimilarity) {
-      highestSimilarity = similarity;
-      bestMatch = project;
+    for (const [project, projectVector] of projectEmbeddings.entries()) {
+        const score = calculateHybridScore(query, project, queryVector, projectVector, confidence);
+        if (score > highestScore) {
+            highestScore = score;
+            bestMatch = project;
+        }
     }
-  }
-  return bestMatch;
+    return bestMatch;
 }
 
 /**
  * Initializes the GoogleGenAI client, creates a chat session, and indexes projects.
  */
 async function initializeAI() {
-  const loadingMessage = addBotMessage("Initializing AI and preparing project search...");
+  const loadingMessage = addMessage("Initializing AI and preparing project search...", "loading");
   try {
-    ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-    chat = ai.chats.create({
-      model: "gemini-2.5-flash",
-      config: {
-        systemInstruction: projectsContext,
-      },
-    });
+    // Fix: Updated API key initialization to use `process.env.API_KEY` as required by the coding guidelines.
+    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     await indexProjects();
     loadingMessage.remove();
-    addBotMessage("Hello! I'm G.E.M., your AI guide. Ask me a question, or try searching for a project (e.g., 'Find a project about UI/UX').");
+    addBotMessage("Hello! I'm G.E.M., your AI guide. Ask me a question, or try searching for a project (e.g., 'Find a project about UI/UX'). You can also ask me to 'send a message' to get in touch!");
   } catch (error) {
     console.error("Failed to initialize AI:", error);
     loadingMessage.remove();
@@ -371,11 +498,11 @@ async function renderProjects() {
 
 /**
  * Adds a message to the chat window.
- * @param {string} text - The message text.
+ * @param {string | HTMLElement} content - The message text or an HTML element to display.
  * @param {'user' | 'bot' | 'loading'} sender - The sender of the message.
  * @returns {HTMLElement} The created message element.
  */
-function addMessage(text: string, sender: 'user' | 'bot' | 'loading'): HTMLElement {
+function addMessage(content: string | HTMLElement, sender: 'user' | 'bot' | 'loading'): HTMLElement {
   const messageEl = document.createElement("div");
   messageEl.classList.add("message", sender);
 
@@ -383,8 +510,9 @@ function addMessage(text: string, sender: 'user' | 'bot' | 'loading'): HTMLEleme
   bubble.classList.add("message-bubble");
 
   if (sender === 'loading') {
-    bubble.innerHTML = text || '<div class="dot-flashing"></div>';
-  } else {
+    bubble.innerHTML = (typeof content === 'string' && content) ? content : '<div class="dot-flashing"></div>';
+  } else if (typeof content === 'string') {
+    let text = content;
     // Basic markdown for bolding (**text**)
     text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     // Basic markdown for bullet points (* text)
@@ -392,6 +520,9 @@ function addMessage(text: string, sender: 'user' | 'bot' | 'loading'): HTMLEleme
      // Basic markdown for links ([text](url))
     text = text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
     bubble.innerHTML = text;
+  } else {
+    // It's an HTMLElement
+    bubble.appendChild(content);
   }
 
   messageEl.appendChild(bubble);
@@ -418,9 +549,69 @@ function addUserMessage(text: string) {
     addMessage(text, 'user');
 }
 
+/**
+ * Creates and displays the contact form within the chat window.
+ */
+function displayContactForm() {
+    const formContainer = document.createElement('div');
+    formContainer.className = 'contact-form-container';
+    formContainer.innerHTML = `
+        <p>Sure! Please fill out the form below and I'll send the message for you.</p>
+        <form id="chatbot-contact-form" aria-labelledby="contact-form-title">
+            <h4 id="contact-form-title" class="sr-only">Contact Form</h4>
+            <div>
+                <label for="contact-name">Name</label>
+                <input type="text" id="contact-name" name="name" required autocomplete="name" />
+            </div>
+            <div>
+                <label for="contact-email">Email</label>
+                <input type="email" id="contact-email" name="email" required autocomplete="email" />
+            </div>
+            <div>
+                <label for="contact-message">Message</label>
+                <textarea id="contact-message" name="message" rows="4" required></textarea>
+            </div>
+            <button type="submit" class="contact-submit-btn">Send Message</button>
+        </form>
+    `;
+
+    const formMessageEl = addMessage(formContainer, 'bot');
+
+    const form = formContainer.querySelector('#chatbot-contact-form') as HTMLFormElement;
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitBtn = form.querySelector('.contact-submit-btn') as HTMLButtonElement;
+            if (!submitBtn) return;
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+
+            const formData = new FormData(form);
+            const name = formData.get('name') as string;
+            const email = formData.get('email') as string;
+            const message = formData.get('message') as string;
+            
+            // Remove form from chat window while processing
+            formMessageEl.remove();
+            const loadingEl = addMessage("Sending your message...", "loading");
+
+            const result = await contactEmailTool(name, email, message);
+            
+            loadingEl.remove();
+
+            if (result.status === 'sent') {
+                addBotMessage("Thanks! Your message has been sent successfully. We'll be in touch soon.");
+            } else {
+                addBotMessage(`Sorry, there was an error: ${result.info || 'Unknown error'}. Please try again.`);
+            }
+        });
+    }
+}
+
 
 /**
- * Handles the chat form submission. It orchestrates between search and conversational chat.
+ * Handles the chat form submission. It orchestrates between search, contact form, and conversational chat.
  * @param {Event} e - The form submission event.
  */
 async function handleChatSubmit(e: Event) {
@@ -428,9 +619,19 @@ async function handleChatSubmit(e: Event) {
   if (!chatInput || chatInput.value.trim() === "") return;
 
   const userMessage = chatInput.value.trim();
+  const confidenceForThisQuery = lastSpeechConfidence; // Capture confidence for this message
+  lastSpeechConfidence = null; // Reset for the next input
+
   addUserMessage(userMessage);
   chatInput.value = "";
   if(sendBtn) sendBtn.disabled = true;
+
+  // Contact form orchestration logic
+  const contactKeywords = ['contact', 'email', 'message', 'send a message'];
+  if (contactKeywords.some(keyword => userMessage.toLowerCase().includes(keyword))) {
+    displayContactForm();
+    return;
+  }
 
   // Search orchestration logic
   const searchKeywords = ['find', 'search', 'look for', 'looking for'];
@@ -438,7 +639,7 @@ async function handleChatSubmit(e: Event) {
     const loadingEl = addMessage("Searching for relevant projects...", "loading");
     try {
       const queryVector = await generateEmbedding(userMessage);
-      const foundProject = await pineconeSearch(queryVector);
+      const foundProject = await findBestProjectMatch(userMessage, queryVector, confidenceForThisQuery);
       loadingEl.remove();
 
       if (foundProject) {
@@ -463,12 +664,41 @@ You can [view the project here](${foundProject.url}).`;
   }
 
   // Fallback to conversational chat
-  if (!chat) return;
+  if (!ai) return;
+
+  conversationHistory.push({
+    role: 'user',
+    parts: [{ text: userMessage }],
+  });
+
   const loadingEl = addMessage("", "loading");
   try {
-    const response = await chat.sendMessage({ message: userMessage });
+    // Limit history to the last 5 turns (10 messages) to manage context window
+    const HISTORY_LIMIT = 10;
+    if (conversationHistory.length > HISTORY_LIMIT) {
+      conversationHistory = conversationHistory.slice(
+        conversationHistory.length - HISTORY_LIMIT,
+      );
+    }
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: conversationHistory,
+        config: {
+          systemInstruction: projectsContext,
+        },
+    });
+
+    const botResponseText = response.text;
+    
+    // Add the model's response to the history for future context
+    conversationHistory.push({
+      role: 'model',
+      parts: [{ text: botResponseText }],
+    });
+
     loadingEl.remove();
-    addBotMessage(response.text);
+    addBotMessage(botResponseText);
   } catch (error) {
     console.error("Gemini API Error:", error);
     loadingEl.remove();
@@ -521,6 +751,8 @@ chatInput?.addEventListener('input', () => {
     if(sendBtn && chatInput) {
         sendBtn.disabled = chatInput.value.trim() === '';
     }
+    // Reset speech confidence if user types manually
+    lastSpeechConfidence = null;
 });
 
 // Starts or stops voice recognition when the mic button is clicked.

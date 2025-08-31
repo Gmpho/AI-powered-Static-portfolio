@@ -1,26 +1,32 @@
-# MCP (Model Control Plane)
+# From Direct API Calls to a Control Plane
 
-The Model Control Plane (MCP) is the core architectural component of this application. It is not a future enhancement but the central nervous system that enables the AI Portfolio Agent to function. It is implemented using the MCP SDK.
+The current architecture of this application involves direct, client-side calls to the Gemini API. While simple for development, this approach has limitations in security and scalability. A more robust, production-ready architecture would introduce a backend layer, sometimes referred to as a **Model Control Plane (MCP)**.
 
-## Role in the Architecture
+## Current Architecture: Direct API Access
 
-The MCP acts as the intelligent bridge between the client-side application and the complex world of AI models, tools, and external services.
+`Frontend <-> Google Gemini API`
 
-**Current Architecture:**
-`Frontend <-> MCP SDK <-> MCP Server <-> [Gemini API, Tools, External Services]`
+-   **Pros:** Simple to set up, no backend infrastructure required.
+-   **Cons:**
+    -   **Insecure:** The API key is exposed on the client side.
+    -   **Limited:** Cannot securely connect to other tools or services (like a database or a private API).
+    -   **Brittle:** Complex logic for choosing between different actions (like search vs. chat) lives on the client and can become difficult to manage.
 
-### Core Responsibilities of the MCP
+## Future Architecture: Using a Backend Control Plane
 
-1.  **Tool Orchestration:**
-    -   The primary role of the MCP is to manage and orchestrate a suite of tools (e.g., Pinecone search, Notion queries).
-    -   When the frontend sends a user prompt, the MCP Server, in conjunction with the Gemini model, determines the user's intent and decides which tool (or sequence of tools) to execute to fulfill the request.
+A better approach is to use a backend that acts as a secure and intelligent bridge between the client and various AI models and tools.
 
-2.  **Secure API Gateway:**
-    -   The MCP server acts as a secure gateway. The frontend communicates with the MCP, and the MCP server, running in a secure backend environment, makes the calls to external services like the Gemini API, Pinecone, etc.
+`Frontend <-> Backend Server (Control Plane) <-> [Gemini API, Other Tools, Databases]`
+
+### Core Responsibilities of a Backend Control Plane
+
+1.  **Secure API Gateway:**
+    -   The primary role of the backend is to act as a secure gateway. The frontend communicates only with your backend server. The backend, running in a secure environment, is responsible for making calls to external services like the Gemini API.
     -   This design ensures that sensitive API keys are never exposed on the client-side.
 
-3.  **Contract Enforcement (with Zod):**
-    -   The MCP enforces a strict contract for every tool. It uses Zod schemas to validate all inputs before executing a tool and all outputs before sending a response back to the client. This ensures data integrity and prevents unexpected errors.
+2.  **Tool Orchestration:**
+    -   A backend is the perfect place to manage and orchestrate a suite of tools.
+    -   Instead of the client having `if/else` logic, the user prompt can be sent to the backend. The backend, with the help of the Gemini model, can then determine the user's intent and decide which tool (e.g., database query, search API call) to execute.
 
-4.  **Decoupling Frontend from Backend Logic:**
-    -   By using the MCP, the frontend is completely decoupled from the backend business logic. The frontend only needs to know how to talk to the MCP SDK client. New tools or complex workflows can be added to the backend without requiring any changes to the frontend code. This makes the application highly modular and scalable.
+3.  **Decoupling and Scalability:**
+    -   By using a backend, the frontend is completely decoupled from the application logic. New tools or complex workflows can be added to the backend without requiring any changes to the frontend code. This makes the application highly modular and scalable.

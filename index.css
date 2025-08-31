@@ -324,6 +324,8 @@ body {
   border-radius: 1.25rem;
   line-height: 1.4;
   transition: background-color 0.3s ease, color 0.3s ease;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .message-bubble a {
@@ -463,6 +465,87 @@ body {
 #chatbot-mic.is-recording {
     background-color: var(--color-danger);
     box-shadow: 0 0 0 4px var(--color-danger-glow);
+}
+
+/* --- Contact Form Styles --- */
+.contact-form-container {
+  width: 100%;
+}
+
+.contact-form-container p {
+  margin-bottom: 1rem;
+}
+
+#chatbot-contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+#chatbot-contact-form label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+#chatbot-contact-form input,
+#chatbot-contact-form textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: 1rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+}
+
+#chatbot-contact-form input:focus,
+#chatbot-contact-form textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+#chatbot-contact-form textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.contact-submit-btn {
+  background-color: var(--color-primary);
+  color: var(--color-text-on-primary);
+  border: none;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  align-self: flex-end;
+}
+
+.contact-submit-btn:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+}
+
+.contact-submit-btn:disabled {
+  background-color: var(--color-primary-disabled);
+  cursor: not-allowed;
+}
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 
 

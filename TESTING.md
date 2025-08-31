@@ -1,26 +1,38 @@
-# Testing Protocol (Playwright)
+# Testing Protocol: A Recommended Approach
 
-The project relies on end-to-end (E2E) testing using Playwright to ensure the entire system, from the UI to the tool chain, works correctly.
+To ensure the reliability and quality of this application, especially as new features are added, a robust testing strategy is essential. While this project does not currently include a test suite, the recommended approach is to use a modern end-to-end (E2E) testing framework like **Playwright**.
 
-## Core Testing Workflow
+## Why End-to-End Testing?
 
-The primary test workflow simulates a complete user interaction, validating each step of the architecture:
+E2E testing is critical for an application like this because it validates the entire workflow from the user's perspective. It simulates real user interactions in a browser, ensuring that the UI, application logic, and API integrations all work together correctly.
 
-1.  **Spin up Dev Server:** The Playwright test runner first starts the local development server on `localhost:3000`.
-2.  **User Sends Chat:** The test script simulates a user typing a message into the chat input and submitting it.
-3.  **MCP Client Request:** Playwright verifies that the frontend (MCP client) successfully sends the request to the backend.
-4.  **MCP Server Invocation:** The test environment (using mocks for external services) confirms that the MCP server receives the request and invokes the correct tool.
-5.  **Tool Calls Proxy:** The test asserts that the tool attempts to call the correct secure proxy endpoint.
-6.  **Response Displayed:** Playwright checks that the final, mocked response from the tool is correctly displayed in the chat UI on the frontend.
+## Recommended Core Testing Workflow with Playwright
 
-## Key E2E Test Scenarios
+A Playwright test suite would automate the following workflow:
 
-The test suite must include, at a minimum, the following E2E tests to validate the core tool functionality:
+1.  **Start the Application:** The test runner would first start a local development server for the application.
+2.  **Open the Chat:** The test would navigate to the page and simulate a user clicking the chatbot FAB to open the chat window.
+3.  **Send a Message:** The script would simulate a user typing a message into the chat input and submitting it.
+4.  **Verify User Message:** The test would assert that the user's message appears correctly in the chat history.
+5.  **Wait for AI Response:** The test would need to handle the asynchronous nature of the API call, waiting for the loading indicator to appear and then be replaced by the bot's response.
+6.  **Assert Bot Response:** The test would check that a response from the bot is successfully displayed in the UI.
 
--   **“List my projects”:**
-    -   **Trigger:** User sends the message "List my projects".
-    -   **Expected Result:** The `Project Metadata` tool is called, and the test asserts that the response displayed in the UI includes the names and descriptions of the portfolio projects.
+## Key E2E Test Scenarios to Implement
 
--   **“Analyze my resume”:**
-    -   **Trigger:** User sends a message like "Analyze my resume" and provides resume text.
-    -   **Expected Result:** The `Resume Analyzer` tool is called, and the test asserts that the response displayed in the UI includes distinct sections for "strengths" and "weaknesses".
+A foundational test suite should cover the application's main features:
+
+-   **General Conversation:**
+    -   **Trigger:** User sends a simple greeting like "Hello".
+    -   **Expected Result:** The test asserts that the bot replies with a conversational response.
+
+-   **Project Search:**
+    -   **Trigger:** User sends a message like "Find a project about TypeScript".
+    -   **Expected Result:** The test asserts that the bot's response contains the name and description of a relevant project.
+
+-   **Contact Form:**
+    -   **Trigger:** User sends a message like "How can I contact you?".
+    -   **Expected Result:** The test asserts that the contact form is rendered within the chat window. It could then proceed to fill out and submit the form, verifying the success message.
+
+-   **Conversation History:**
+    -   **Trigger:** A test that involves multiple message exchanges.
+    -   **Expected Result:** The test asserts that the bot's later responses are contextually aware of the earlier messages in the conversation.
