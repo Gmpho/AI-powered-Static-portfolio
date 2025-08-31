@@ -4,7 +4,7 @@ This document outlines the architecture of the AI-Powered Portfolio. The current
 
 ## Diagram
 
-![Architecture Website Portfolio](architecture website portfolio.png)
+![Architecture Website Portfolio](../architecture%20website%20portfolio.png)
 
 
 
