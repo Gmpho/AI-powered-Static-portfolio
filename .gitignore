@@ -31,3 +31,8 @@ dist-ssr
 .env.*.local
 .env.test
 .env.production
+
+.gemini/
+gha-creds-*.json
+.vscode-test/
+

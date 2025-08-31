@@ -24,7 +24,7 @@ This project is a client-side-only application.
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/your-username/ai-powered-portfolio.git
+    git clone https://github.com/Gmpho/AI-powered-Static-portfolio.git
     cd ai-powered-portfolio
     ```
 
