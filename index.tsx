@@ -41,6 +41,10 @@ interface SpeechRecognition extends EventTarget {
   onerror: (event: SpeechRecognitionErrorEvent) => void;
 }
 
+/**
+ * An array of project objects to be displayed on the portfolio and used by the AI.
+ * @type {Array<Object>}
+ */
 const projects = [
   {
     title: "AI Resume Analyzer",
@@ -62,6 +66,11 @@ const projects = [
   },
 ];
 
+/**
+ * The system instruction context provided to the Gemini API.
+ * This string defines the AI's persona, rules, and the data it has access to.
+ * @type {string}
+ */
 const projectsContext = `
 You are "G.E.M.", a witty and insightful AI guide for Gift Mpho's personal portfolio website. 
 Your persona is that of a tech-savvy, enthusiastic, and slightly playful assistant.
@@ -92,7 +101,7 @@ ${projects
   .join("\n")}
 `;
 
-// DOM Elements
+// --- DOM Element References ---
 const projectsContainer = document.querySelector(".projects");
 const fab = document.getElementById("chatbot-fab");
 const chatWindow = document.getElementById("chatbot-window");
@@ -102,6 +111,7 @@ const chatForm = document.getElementById("chatbot-form");
 const chatInput = document.getElementById("chatbot-input") as HTMLInputElement;
 const sendBtn = document.getElementById("chatbot-send") as HTMLButtonElement;
 const micBtn = document.getElementById("chatbot-mic") as HTMLButtonElement;
+const themeToggleBtn = document.getElementById('theme-toggle');
 
 
 let ai: GoogleGenAI | null = null;
@@ -198,7 +208,9 @@ function toggleSpeechRecognition() {
 
 
 /**
- * Initializes the Gemini AI client and chat session.
+ * Initializes the GoogleGenAI client and creates a new chat session.
+ * It sets the system instruction for the AI model and sends a welcome message.
+ * If initialization fails, it displays an error message and disables the chat.
  */
 function initializeAI() {
   try {
@@ -219,7 +231,8 @@ function initializeAI() {
 }
 
 /**
- * Renders project cards to the DOM.
+ * Renders project cards into the projects container element on the page.
+ * It dynamically creates the HTML for each project from the `projects` array.
  */
 function renderProjects() {
   if (!projectsContainer) return;
@@ -287,7 +300,8 @@ function addUserMessage(text: string) {
 
 
 /**
- * Handles the chat form submission.
+ * Handles the chat form submission. It sends the user's message to the Gemini API,
+ * displays a loading indicator, and then shows the AI's response.
  * @param {Event} e - The form submission event.
  */
 async function handleChatSubmit(e: Event) {
@@ -313,30 +327,69 @@ async function handleChatSubmit(e: Event) {
   }
 }
 
+// --- Theme Toggling ---
+/**
+ * Sets the color theme for the application.
+ * @param {'light' | 'dark'} theme - The theme to set.
+ */
+function setTheme(theme: 'light' | 'dark') {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    if (themeToggleBtn) {
+        themeToggleBtn.innerHTML = theme === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+        themeToggleBtn.setAttribute('aria-label', `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`);
+    }
+}
+
+/**
+ * Handles the click event for the theme toggle button.
+ */
+function handleThemeToggle() {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme as 'light' | 'dark');
+}
+
 // --- Event Listeners ---
+
+// Toggles the chat window's visibility when the FAB is clicked.
 fab?.addEventListener("click", () => {
   chatWindow?.classList.toggle("visible");
   fab.setAttribute('aria-label', chatWindow?.classList.contains('visible') ? 'Close chat' : 'Open chat');
 });
 
+// Hides the chat window when the close button is clicked.
 closeBtn?.addEventListener("click", () => {
   chatWindow?.classList.remove("visible");
   fab?.setAttribute('aria-label', 'Open chat');
 });
 
+// Handles sending the message when the form is submitted.
 chatForm?.addEventListener("submit", handleChatSubmit);
 
+// Enables or disables the send button based on whether the input has text.
 chatInput?.addEventListener('input', () => {
     if(sendBtn && chatInput) {
         sendBtn.disabled = chatInput.value.trim() === '';
     }
 });
 
+// Starts or stops voice recognition when the mic button is clicked.
 micBtn?.addEventListener('click', toggleSpeechRecognition);
 
+// Add event listener for theme toggle
+themeToggleBtn?.addEventListener('click', handleThemeToggle);
 
 // --- Initialization ---
+
+// When the DOM is fully loaded, render the project cards and initialize the AI.
 document.addEventListener("DOMContentLoaded", () => {
   renderProjects();
   initializeAI();
+  
+  // Set initial theme icon
+  const initialTheme = document.documentElement.getAttribute('data-theme');
+  if (initialTheme === 'light' || initialTheme === 'dark') {
+      setTheme(initialTheme);
+  }
 });

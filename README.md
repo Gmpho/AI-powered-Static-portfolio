@@ -9,6 +9,12 @@ An interactive portfolio website featuring an AI chatbot powered by the Gemini A
 -   **Responsive Design:** A clean, modern, and fully responsive layout that works on all devices.
 -   **Dynamic Project Loading:** Project data is managed in JavaScript and rendered dynamically to the page.
 
+## Technology Stack
+
+-   **Frontend:** HTML5, CSS3, TypeScript
+-   **AI Integration:** Google Gemini API (`@google/genai`)
+-   **Speech Recognition:** Web Speech API (experimental browser feature)
+
 ## Quick Start
 
 To run this project locally, follow these steps:
@@ -57,6 +63,10 @@ Here is a breakdown of the key files and their purpose in the project:
     -   Communicating with the Gemini API to get AI-generated responses.
 -   `metadata.json`: Configuration for the web development environment. It specifies necessary permissions, such as microphone access, required for the speech-to-text feature to work.
 -   `README.md`: This file! Your comprehensive guide to understanding, setting up, and running the project.
+
+## Code Documentation
+
+The primary logic in `index.tsx` is documented using JSDoc comments. These comments explain the purpose of major functions, variables, and code blocks, making it easier to understand the flow of the application. Developers are encouraged to read these comments to get a deeper insight into the codebase.
 
 ## Deployment
 

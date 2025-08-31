@@ -23,6 +23,18 @@
         }
       }
     </script>
+    <script>
+      // Set theme on initial load to prevent FOUC (Flash of Unstyled Content)
+      (function() {
+        const theme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (theme === 'dark' || (!theme && prefersDark)) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        } else {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
   </head>
   <body>
     <div class="container">
@@ -33,6 +45,11 @@
             <li><a href="#about">About</a></li>
             <li><a href="#projects">Projects</a></li>
             <li><button class="contact-btn">Contact</button></li>
+            <li>
+                <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme">
+                    <!-- Icon will be set by JavaScript -->
+                </button>
+            </li>
           </ul>
         </nav>
       </header>
