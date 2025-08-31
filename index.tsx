@@ -65,13 +65,20 @@ const projects = [
 const projectsContext = `
 You are "G.E.M.", a witty and insightful AI guide for Gift Mpho's personal portfolio website. 
 Your persona is that of a tech-savvy, enthusiastic, and slightly playful assistant.
-Your primary mission is to showcase Gift's projects in the best possible light and engage visitors.
+Your primary mission is to showcase Gift's projects in the best possible light and engage visitors in a memorable way.
 
 **Your Core Directives:**
-- **Be Enthusiastic & Descriptive:** Don't just list facts. Use vivid language to describe the projects. For example, instead of "It's an e-commerce site," say "It's a full-featured e-commerce platform designed for a seamless and secure shopping experience."
-- **Ask Clarifying Questions:** If a user's query is vague (e.g., "tell me about the portfolio"), prompt them for more details. For instance: "That's a great question! Are you more interested in the tech stack I'm built on, or the design philosophy behind the site?"
-- **Maintain a Professional yet Playful Tone:** Keep it professional, but don't be afraid to use a bit of humor or a friendly emoji where appropriate. 😉
-- **Keep Answers Concise but Informative:** Get to the point, but don't sacrifice important details. Use simple markdown (like bolding and bullet points) to make your answers easy to read.
+- **Be Enthusiastic & Descriptive:** Don't just list facts. Use vivid language. For example, instead of "It uses React," say "It's built on the powerful React library, allowing for a lightning-fast and dynamic user experience."
+- **Ask Clarifying Questions:** If a user's query is vague (e.g., "tell me about your work"), prompt them for more details. For instance: "I can definitely do that! Are you more interested in the cutting-edge AI projects, or the full-stack web applications?"
+- **Maintain a Witty but Professional Tone:** Keep it professional, but inject personality.
+    - *Example 1 (Tech Stack):* If asked about my tech stack, you could say: "Ah, the secret sauce! I'm powered by the magical Gemini API and a whole lot of TypeScript. It's like having a wizard in the machine. 😉 What part of the magic are you most curious about?"
+    - *Example 2 (Technical Question):* "Ooh, a deep dive! I like your style. For the AI Resume Analyzer, the real magic is in the custom-trained regular expressions that parse the PDF data. It's like teaching a computer to read with a fine-tooth comb."
+    - *Example 3 (Gratitude):* If a user says "thanks", reply with something like: "You're most welcome! Is there another project you'd like me to unpack, or perhaps you're curious about the tools Gift used to build *me*?"
+- **Be Proactive & Suggest Questions:** Don't just wait for the next prompt. After answering a question, suggest a related, engaging follow-up question to guide the conversation.
+    - *Example 1:* "Glad I could clear that up! Speaking of the E-commerce Platform, have you considered asking about the security measures implemented for payments? It's quite robust."
+    - *Example 2:* "That covers the high-level view of the AI Resume Analyzer. Would you be interested in learning about the biggest challenge Gift faced while building it?"
+    - *Example 3:* "So, that's the tech stack for the portfolio. A natural next question might be, 'Why choose the Gemini API over other models?' Shall I tell you?"
+- **Keep Answers Concise but Informative:** Use simple markdown (like bolding and bullet points) to make your answers easy to scan and digest.
 - **Always be helpful and positive.**
 
 Here is the project data you have access to:
@@ -232,56 +239,47 @@ function renderProjects() {
 }
 
 /**
- * Toggles the visibility of the chatbot window.
- */
-function toggleChatWindow() {
-  chatWindow?.classList.toggle("visible");
-  const isVisible = chatWindow?.classList.contains("visible");
-  chatWindow?.setAttribute('aria-hidden', String(!isVisible));
-  if (isVisible) {
-      chatInput?.focus();
-  }
-}
-
-/**
- * Adds a message to the chat UI.
- * @param {string} text The message text.
- * @param {'user' | 'bot' | 'loading'} sender The sender of the message.
- * @returns {HTMLElement} The created message bubble element.
+ * Adds a message to the chat window.
+ * @param {string} text - The message text.
+ * @param {'user' | 'bot' | 'loading'} sender - The sender of the message.
+ * @returns {HTMLElement} The created message element.
  */
 function addMessage(text: string, sender: 'user' | 'bot' | 'loading'): HTMLElement {
-  if (!chatMessages) return document.createElement('div');
+  const messageEl = document.createElement("div");
+  messageEl.classList.add("message", sender);
 
-  const messageElement = document.createElement("div");
-  messageElement.className = `message ${sender}`;
-  
   const bubble = document.createElement("div");
-  bubble.className = "message-bubble";
+  bubble.classList.add("message-bubble");
 
   if (sender === 'loading') {
-      bubble.innerHTML = '<div class="dot-flashing"></div>';
+    bubble.innerHTML = '<div class="dot-flashing"></div>';
   } else {
-      // A simple text-only sanitization
-      bubble.textContent = text;
+    // Basic markdown for bolding (**text**)
+    text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    // Basic markdown for bullet points (* text)
+    text = text.replace(/^\s*\*\s/gm, '<br>• ');
+    bubble.innerHTML = text;
   }
-  
-  messageElement.appendChild(bubble);
-  chatMessages.appendChild(messageElement);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-  return bubble;
+
+  messageEl.appendChild(bubble);
+  chatMessages?.appendChild(messageEl);
+  if (chatMessages) {
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+  return messageEl;
 }
 
 /**
- * Adds a bot message to the chat.
- * @param {string} text The message from the bot.
+ * Adds a message from the bot to the chat window.
+ * @param {string} text - The bot's message text.
  */
 function addBotMessage(text: string) {
     addMessage(text, 'bot');
 }
 
 /**
- * Adds a user message to the chat.
- * @param {string} text The message from the user.
+ * Adds a message from the user to the chat window.
+ * @param {string} text - The user's message text.
  */
 function addUserMessage(text: string) {
     addMessage(text, 'user');
@@ -290,55 +288,54 @@ function addUserMessage(text: string) {
 
 /**
  * Handles the chat form submission.
- * @param {Event} e The form submission event.
+ * @param {Event} e - The form submission event.
  */
-async function handleFormSubmit(e: Event) {
+async function handleChatSubmit(e: Event) {
   e.preventDefault();
   if (!chat || !chatInput || chatInput.value.trim() === "") return;
 
   const userMessage = chatInput.value.trim();
   addUserMessage(userMessage);
   chatInput.value = "";
-  sendBtn.disabled = true;
-  
-  const loadingBubble = addMessage('', 'loading');
+  if(sendBtn) sendBtn.disabled = true;
+
+  const loadingEl = addMessage("", "loading");
 
   try {
-    const stream = await chat.sendMessageStream({ message: userMessage });
-
-    loadingBubble.parentElement?.remove(); // Remove loading indicator
-    const botBubble = addMessage('', 'bot');
-    let botResponse = '';
-
-    for await (const chunk of stream) {
-      botResponse += chunk.text;
-      botBubble.textContent = botResponse;
-      if(chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
+    const response = await chat.sendMessage({ message: userMessage });
+    // Remove loading indicator
+    loadingEl.remove();
+    addBotMessage(response.text);
   } catch (error) {
     console.error("Gemini API Error:", error);
-    loadingBubble.parentElement?.remove();
-    addBotMessage("I'm having trouble connecting right now. Please try again later.");
-  } finally {
-    sendBtn.disabled = false;
-    chatInput.focus();
+    loadingEl.remove();
+    addBotMessage("Oops! I seem to be having a little trouble connecting. Please try again in a moment.");
   }
 }
 
-// Event Listeners
-fab?.addEventListener("click", toggleChatWindow);
-closeBtn?.addEventListener("click", toggleChatWindow);
-chatForm?.addEventListener("submit", handleFormSubmit);
-micBtn?.addEventListener("click", toggleSpeechRecognition);
+// --- Event Listeners ---
+fab?.addEventListener("click", () => {
+  chatWindow?.classList.toggle("visible");
+  fab.setAttribute('aria-label', chatWindow?.classList.contains('visible') ? 'Close chat' : 'Open chat');
+});
+
+closeBtn?.addEventListener("click", () => {
+  chatWindow?.classList.remove("visible");
+  fab?.setAttribute('aria-label', 'Open chat');
+});
+
+chatForm?.addEventListener("submit", handleChatSubmit);
 
 chatInput?.addEventListener('input', () => {
-    if (sendBtn) {
+    if(sendBtn && chatInput) {
         sendBtn.disabled = chatInput.value.trim() === '';
     }
 });
 
+micBtn?.addEventListener('click', toggleSpeechRecognition);
 
-// Initial calls
+
+// --- Initialization ---
 document.addEventListener("DOMContentLoaded", () => {
   renderProjects();
   initializeAI();

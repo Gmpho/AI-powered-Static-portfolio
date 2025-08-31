@@ -1,20 +1,70 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# AI-Powered Portfolio
 
-# Run and deploy your AI Studio app
+An interactive portfolio website featuring an AI chatbot powered by the Gemini API to answer questions about projects. This project showcases the ability to integrate Google's Generative AI into a modern web application to create an engaging and dynamic user experience.
 
-This contains everything you need to run your app locally.
+## Features
 
-View your app in AI Studio: https://ai.studio/apps/drive/15pjXRLVP84M3XrNpxhcpwUEjO17lR1Z4
+-   **Interactive AI Chatbot:** Engage with "G.E.M.", an AI assistant powered by the Gemini API, to get information about projects.
+-   **Voice Input:** Use your microphone to ask questions with the integrated Web Speech API.
+-   **Responsive Design:** A clean, modern, and fully responsive layout that works on all devices.
+-   **Dynamic Project Loading:** Project data is managed in JavaScript and rendered dynamically to the page.
 
-## Run Locally
+## Quick Start
 
-**Prerequisites:**  Node.js
+To run this project locally, follow these steps:
 
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/your-username/ai-powered-portfolio.git
+    cd ai-powered-portfolio
+    ```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+2.  **Set up your Gemini API Key:**
+    This project requires a Google Gemini API key to function. The application is configured to read this key from an environment variable named `API_KEY`.
+    
+    For local development, your deployment or serving tool must make this variable available to the application. When deploying to a hosting provider like Vercel or Netlify, you will set this in the project's environment variable settings. **Do not hardcode your API key in the code.**
+
+3.  **Serve the application:**
+    This application uses ES modules (`import`/`export`) which require it to be served over a local web server to function correctly in the browser. Simply opening the `index.html` file from your file system will not work.
+
+    A simple way to do this is using the VS Code "Live Server" extension or a command-line tool like `serve`.
+
+    ```bash
+    # Install serve globally if you don't have it
+    npm install -g serve
+
+    # Run the server from the project's root directory
+    serve
+    ```
+
+4.  Open your browser and navigate to the local URL provided by your server (e.g., `http://localhost:3000`).
+
+## Important Environment Variables
+
+-   `API_KEY`: **(Required)** Your Google Gemini API key. The AI chatbot will not function without this key.
+
+## Folder Map
+
+Here is a breakdown of the key files and their purpose in the project:
+
+-   `index.html`: The main entry point and structure for the web application. It includes the layout for the header, hero section, project display area, and the chatbot widget.
+-   `index.css`: Contains all the styling for the application. It uses modern CSS features like custom properties (variables) for easy theming and a responsive design approach.
+-   `index.tsx`: The heart of the application, written in TypeScript. This file contains all the client-side logic for:
+    -   Initializing the Gemini API and the chat session.
+    -   Rendering project cards into the DOM.
+    -   Managing all chatbot UI interactions (opening, closing, sending messages).
+    -   Handling user input, including text and voice via the Web Speech API.
+    -   Communicating with the Gemini API to get AI-generated responses.
+-   `metadata.json`: Configuration for the web development environment. It specifies necessary permissions, such as microphone access, required for the speech-to-text feature to work.
+-   `README.md`: This file! Your comprehensive guide to understanding, setting up, and running the project.
+
+## Deployment
+
+This is a static web application and can be deployed to any static site hosting service. Popular choices include:
+
+-   Vercel
+-   Netlify
+-   GitHub Pages
+-   Cloudflare Pages
+
+When deploying, remember to configure the `API_KEY` as an environment variable in your hosting provider's dashboard to ensure the application functions correctly in production.
