@@ -1,4 +1,4 @@
-import { GoogleGenAI, Chat } from "@google/genai";
+import { GoogleGenerativeAI, ChatSession } from "@google/generative-ai";
 
 // Fix: Add type definitions for the Web Speech API to resolve TypeScript errors.
 // The Web Speech API is experimental and types may not be in default TS lib files.
@@ -91,8 +91,8 @@ const sendBtn = document.getElementById("chatbot-send") as HTMLButtonElement;
 const micBtn = document.getElementById("chatbot-mic") as HTMLButtonElement;
 
 
-let ai: GoogleGenAI | null = null;
-let chat: Chat | null = null;
+let ai: GoogleGenerativeAI | null = null;
+let chat: ChatSession | null = null;
 
 // --- Speech Recognition Setup ---
 // FIX: Renamed constant to avoid conflict with the global SpeechRecognition type.
@@ -189,13 +189,9 @@ function toggleSpeechRecognition() {
  */
 function initializeAI() {
   try {
-    ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-    chat = ai.chats.create({
-      model: "gemini-2.5-flash",
-      config: {
-        systemInstruction: projectsContext,
-      },
-    });
+    ai = new GoogleGenerativeAI(process.env.API_KEY as string);
+    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash", systemInstruction: projectsContext });
+    chat = model.startChat();
     addBotMessage("Hi there! How can I help you explore these projects?");
   } catch (error) {
     console.error("Failed to initialize AI:", error);
@@ -298,14 +294,15 @@ async function handleFormSubmit(e: Event) {
   const loadingBubble = addMessage('', 'loading');
 
   try {
-    const stream = await chat.sendMessageStream({ message: userMessage });
+    const result = await chat.sendMessageStream(userMessage);
 
     loadingBubble.parentElement?.remove(); // Remove loading indicator
     const botBubble = addMessage('', 'bot');
     let botResponse = '';
 
-    for await (const chunk of stream) {
-      botResponse += chunk.text;
+    for await (const chunk of result.stream) {
+      const chunkText = chunk.text();
+      botResponse += chunkText;
       botBubble.textContent = botResponse;
       if(chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
     }
