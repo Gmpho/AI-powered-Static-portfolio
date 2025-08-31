@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, ChatSession } from "@google/generative-ai";
+import { GoogleGenAI, Chat } from "@google/genai";
 
 // Fix: Add type definitions for the Web Speech API to resolve TypeScript errors.
 // The Web Speech API is experimental and types may not be in default TS lib files.
@@ -63,16 +63,22 @@ const projects = [
 ];
 
 const projectsContext = `
-You are a helpful and friendly AI assistant for a personal portfolio website.
-Your goal is to answer questions about the projects listed below.
-Be enthusiastic and professional. Keep your answers concise.
-Format your responses using simple markdown.
+You are "G.E.M.", a witty and insightful AI guide for Gift Mpho's personal portfolio website. 
+Your persona is that of a tech-savvy, enthusiastic, and slightly playful assistant.
+Your primary mission is to showcase Gift's projects in the best possible light and engage visitors.
 
-Here is the list of projects:
+**Your Core Directives:**
+- **Be Enthusiastic & Descriptive:** Don't just list facts. Use vivid language to describe the projects. For example, instead of "It's an e-commerce site," say "It's a full-featured e-commerce platform designed for a seamless and secure shopping experience."
+- **Ask Clarifying Questions:** If a user's query is vague (e.g., "tell me about the portfolio"), prompt them for more details. For instance: "That's a great question! Are you more interested in the tech stack I'm built on, or the design philosophy behind the site?"
+- **Maintain a Professional yet Playful Tone:** Keep it professional, but don't be afraid to use a bit of humor or a friendly emoji where appropriate. 😉
+- **Keep Answers Concise but Informative:** Get to the point, but don't sacrifice important details. Use simple markdown (like bolding and bullet points) to make your answers easy to read.
+- **Always be helpful and positive.**
+
+Here is the project data you have access to:
 ${projects
   .map(
     (p) =>
-      `- **${p.title}**: ${p.description} (Technologies: ${p.tags.join(
+      `- **${p.title}**: ${p.description} (Key Technologies: ${p.tags.join(
         ", ",
       )})`,
   )
@@ -91,8 +97,8 @@ const sendBtn = document.getElementById("chatbot-send") as HTMLButtonElement;
 const micBtn = document.getElementById("chatbot-mic") as HTMLButtonElement;
 
 
-let ai: GoogleGenerativeAI | null = null;
-let chat: ChatSession | null = null;
+let ai: GoogleGenAI | null = null;
+let chat: Chat | null = null;
 
 // --- Speech Recognition Setup ---
 // FIX: Renamed constant to avoid conflict with the global SpeechRecognition type.
@@ -189,10 +195,14 @@ function toggleSpeechRecognition() {
  */
 function initializeAI() {
   try {
-    ai = new GoogleGenerativeAI(process.env.API_KEY as string);
-    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash", systemInstruction: projectsContext });
-    chat = model.startChat();
-    addBotMessage("Hi there! How can I help you explore these projects?");
+    ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+    chat = ai.chats.create({
+      model: "gemini-2.5-flash",
+      config: {
+        systemInstruction: projectsContext,
+      },
+    });
+    addBotMessage("Hello! I'm G.E.M., your AI guide to Gift's portfolio. What project sparks your curiosity first?");
   } catch (error) {
     console.error("Failed to initialize AI:", error);
     addBotMessage("Sorry, the AI assistant is currently unavailable.");
@@ -294,15 +304,14 @@ async function handleFormSubmit(e: Event) {
   const loadingBubble = addMessage('', 'loading');
 
   try {
-    const result = await chat.sendMessageStream(userMessage);
+    const stream = await chat.sendMessageStream({ message: userMessage });
 
     loadingBubble.parentElement?.remove(); // Remove loading indicator
     const botBubble = addMessage('', 'bot');
     let botResponse = '';
 
-    for await (const chunk of result.stream) {
-      const chunkText = chunk.text();
-      botResponse += chunkText;
+    for await (const chunk of stream) {
+      botResponse += chunk.text;
       botBubble.textContent = botResponse;
       if(chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
     }
