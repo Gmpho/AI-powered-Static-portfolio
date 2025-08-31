@@ -26,3 +26,9 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
+*.tmp
+*.bak
+
+.gemini/
+gha-creds-*.json
+.vscode-test/

@@ -24,7 +24,7 @@ graph TD
 *   **Technologies:** TypeScript, `@google/genai` SDK.
 *   **Responsibilities:** This is the core of the application, running entirely in the user's browser.
     *   **State Management:** Manages the application state, such as the conversation history.
-    *   **AI Integration:** Initializes the Gemini AI client and handles all communication with the Gemini API. This includes sending user prompts and receiving AI responses.
+    *   **AI Integration:** Initializes the Gemini AI client and handles all communication with the Gemini API.
     *   **Orchestration Logic:** Contains the logic to interpret user intent. Based on keywords (e.g., "search," "contact"), it decides whether to perform a semantic search, display the contact form, or engage in a general conversation.
     *   **Data Persistence:** Uses the browser's `localStorage` to save and load the chat history, allowing conversations to persist between sessions.
 
