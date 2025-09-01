@@ -15,7 +15,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 20
-          npm-version: latest
+          npm-version: latest 
       - run: npm ci
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
