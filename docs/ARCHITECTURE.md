@@ -32,6 +32,7 @@ This document outlines the architecture of the AI-Powered Portfolio. The current
 
 ### ☁️ Infrastructure & Deployment
 
-*   **Technologies:** Docker, Nginx.
+*   **Technologies:** Docker, Nginx, GitHub Pages.
 *   **Responsibilities:**
     *   **Docker:** The application includes a multi-stage `Dockerfile` for containerization. This creates a production-ready image by building the static assets and serving them from a lightweight Nginx container. This ensures a small, secure, and efficient deployment.
+    *   **GitHub Pages:** The application is configured for automated deployment to GitHub Pages via GitHub Actions.

@@ -58,8 +58,8 @@ graph TD
 
 ### ☁️ Infrastructure & Deployment
 
-*   **Technologies:** Docker, Nginx.
-*   **Responsibilities:** The application includes a multi-stage `Dockerfile` for containerization.
+*   **Technologies:** Docker, Nginx, GitHub Pages.
+*   **Responsibilities:** The application includes a multi-stage `Dockerfile` for containerization and is configured for automated deployment to GitHub Pages via GitHub Actions.
 
 ## 🔐 API Access Model & Security
 
@@ -125,6 +125,10 @@ Run `npm run build` to create a production build in the `dist` directory.
 ## Docker
 
 Build and run the Docker container using the provided `Dockerfile`.
+
+## Deployment
+
+The portfolio is automatically deployed to GitHub Pages whenever changes are pushed to the `main` branch. The deployment process is managed by the `.github/workflows/static.yml` GitHub Actions workflow.
 
 # 📜 Development Conventions
 
