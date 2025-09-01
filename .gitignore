@@ -39,3 +39,10 @@ gha-creds-*.json
 
 #Ignore vscode AI rules
 .github\instructions\.instructions.md
+
+
+#Ignore vscode AI rules
+.github\instructions\codacy.instructions.md
+
+# Ignore deployment instructions
+plain.text deoloy

@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@google/genai": "latest"
+    "@google/genai": "^1.16.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
