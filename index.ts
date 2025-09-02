@@ -1,4 +1,7 @@
+
+
 import { sendPrompt } from "./frontend/chatbot";
+
 
 // --- DOM Element References ---
 const projectsContainer = document.querySelector(".projects");
