@@ -1,6 +1,6 @@
 
 
-import { sendPrompt } from "./frontend/chatbot";
+import { sendPrompt } from "./chatbot";
 
 
 // --- DOM Element References ---
