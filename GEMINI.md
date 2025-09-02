@@ -138,7 +138,7 @@ The portfolio is automatically deployed to GitHub Pages whenever changes are pus
 # 📜 Development Conventions
 
 *   **No Framework:** All DOM manipulation is done with plain TypeScript.
-*   **JSX for Templating:** JSX is used for templating, but without the React library.
+    *   **HTML Templating:** HTML structures are created using JavaScript template literals within `.ts` files, allowing for dynamic content generation without a frontend framework.
 *   **Styling:** CSS is used for styling.
 *   **Environment Variables:** Must be prefixed with `VITE_`.
 *   **AI Interaction:** Handled in `frontend/chatbot.ts` (via Cloudflare Worker).

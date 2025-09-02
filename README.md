@@ -37,7 +37,7 @@ Traditional portfolios are static and passive. This project transforms the conve
 
 This project is built with a selection of modern and efficient technologies, chosen for their performance, flexibility, and developer experience.
 
--   **Frontend**: TypeScript, HTML5, CSS3 (No framework)
+-   **Frontend**: TypeScript, HTML5, CSS3 (No framework, uses JavaScript template literals for HTML templating)
 -   **AI Layer**: Cloudflare Workers (for secure API proxy), Google Gemini API
 -   **Speech Recognition**: Web Speech API
 

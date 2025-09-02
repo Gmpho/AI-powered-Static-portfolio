@@ -13,6 +13,7 @@ This document outlines the architecture of the AI-Powered Portfolio. The current
 ### 🎨 Presentation Layer (UI)
 
 *   **Technologies:** Vanilla TypeScript, HTML, CSS.
+    *   **HTML Templating:** HTML structures are created using JavaScript template literals within `.ts` files for dynamic content.
 *   **Responsibilities:** Renders the main portfolio page, including the header, hero section, and project cards. It also provides the user interface for the chatbot, including the chat window, message history, and input form. All UI manipulation is handled directly via the DOM.
 
 ### 🧠 Application Logic Layer (Client-Side)
