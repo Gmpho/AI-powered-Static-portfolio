@@ -1,6 +1,6 @@
 # 🏗️ Application Architecture
 
-This document outlines the architecture of the AI-Powered Portfolio. The current implementation is a **client-side, single-page application (SPA)** that interacts directly with the Google Gemini API from the user's browser.
+This document outlines the architecture of the AI-Powered Portfolio. The current implementation is a **client-side, single-page application (SPA)** that interacts with the Google Gemini API via a secure Cloudflare Worker proxy.
 
 ## Diagram
 
@@ -17,10 +17,10 @@ This document outlines the architecture of the AI-Powered Portfolio. The current
 
 ### 🧠 Application Logic Layer (Client-Side)
 
-*   **Technologies:** TypeScript, `@google/genai` SDK.
+*   **Technologies:** TypeScript.
 *   **Responsibilities:** This is the core of the application, running entirely in the user's browser.
     *   **State Management:** Manages the application state, such as the conversation history.
-    *   **AI Integration:** Initializes the Gemini AI client and handles all communication with the Gemini API.
+    *   **AI Integration:** Handles communication with the Cloudflare Worker, which securely proxies requests to the Gemini API.
     *   **Orchestration Logic:** Contains the logic to interpret user intent. Based on keywords (e.g., "search," "contact"), it decides whether to perform a semantic search, display the contact form, or engage in a general conversation.
     *   **Data Persistence:** Uses the browser's `localStorage` to save and load the chat history, allowing conversations to persist between sessions.
 
@@ -32,7 +32,9 @@ This document outlines the architecture of the AI-Powered Portfolio. The current
 
 ### ☁️ Infrastructure & Deployment
 
-*   **Technologies:** Docker, Nginx, GitHub Pages.
+*   **Technologies:** Docker, Nginx, GitHub Pages, Cloudflare Workers.
 *   **Responsibilities:**
     *   **Docker:** The application includes a multi-stage `Dockerfile` for containerization. This creates a production-ready image by building the static assets and serving them from a lightweight Nginx container. This ensures a small, secure, and efficient deployment.
     *   **GitHub Pages:** The application is configured for automated deployment to GitHub Pages via GitHub Actions.
+    *   **Cloudflare Workers:** The AI backend, responsible for securely interacting with the Gemini API, is deployed as a Cloudflare Worker.
+

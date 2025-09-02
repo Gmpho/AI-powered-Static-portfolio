@@ -38,7 +38,7 @@ Traditional portfolios are static and passive. This project transforms the conve
 This project is built with a selection of modern and efficient technologies, chosen for their performance, flexibility, and developer experience.
 
 -   **Frontend**: TypeScript, HTML5, CSS3 (No framework)
--   **AI Layer**: Google Gemini API via `@google/genai` SDK
+-   **AI Layer**: Cloudflare Workers (for secure API proxy), Google Gemini API
 -   **Speech Recognition**: Web Speech API
 
 ## 🚀 Quick Start
@@ -52,13 +52,7 @@ This project is a client-side-only application, designed for easy setup and depl
     ```
 
 2.  **Set up Environment Variables:**
-    This project uses Vite, which handles environment variables. Create a `.env.local` file in the root of the project.
-    
-    Then, add your Gemini API key to this file. **This key will be exposed on the client-side and is for development purposes only.**
-    
-    ```
-    VITE_API_KEY=YOUR_GEMINI_API_KEY
-    ```
+    The frontend of this project does not directly use the Gemini API key. All AI interactions are proxied through a Cloudflare Worker for enhanced security. Refer to the `worker/` directory for instructions on setting up the Worker's environment variables.
 
 3.  **Run the application:**
     You will need a local web server to run the application. If you have Node.js installed, you can use a simple tool like `vite`.
@@ -76,8 +70,8 @@ Containerize this application for consistent and isolated environments using Doc
 
 **Build the image:**
 ```bash
-# Note: You must pass your API key as a build argument.
-docker build --build-arg VITE_API_KEY="YOUR_GEMINI_API_KEY" -t ai-portfolio .
+# The frontend Docker image does not require the API key.
+docker build -t ai-portfolio .
 ```
 
 **Run the container:**

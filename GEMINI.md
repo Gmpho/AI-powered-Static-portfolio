@@ -15,7 +15,11 @@ This is a client-side-only, AI-powered portfolio website. It features a conversa
 ## 🛠️ Technology Stack
 
 *   **Frontend**: TypeScript, HTML5, CSS3
-*   **AI Layer**: Google Gemini API (`@google/genai` SDK)
+
+
+
+
+*   **AI Layer**: Cloudflare Workers, Google Gemini API (`@google/genai` SDK)
 *   **Gemini Model**: `gemini-2.5-flash`
 *   **Build Tool**: Vite
 *   **Speech Recognition**: Web Speech API
@@ -30,7 +34,8 @@ The application is a **client-side, single-page application (SPA)** that interac
 graph TD
     A[User] --> B{Browser (SPA)};
     B --> C[Static HTML/CSS/JS];
-    B --> D{Gemini API};
+    B --> D{Cloudflare Worker};
+    D --> F{Gemini API};
     B --> E[localStorage];
 ```
 
@@ -43,10 +48,10 @@ graph TD
 
 ### 🧠 Application Logic Layer (Client-Side)
 
-*   **Technologies:** TypeScript, `@google/genai` SDK.
+*   **Technologies:** TypeScript.
 *   **Responsibilities:** This is the core of the application, running entirely in the user's browser.
     *   **State Management:** Manages the application state, such as the conversation history.
-    *   **AI Integration:** Initializes the Gemini AI client and handles all communication with the Gemini API.
+    *   **AI Integration:** Handles communication with the Cloudflare Worker, which in turn interacts with the Gemini API.
     *   **Orchestration Logic:** Contains the logic to interpret user intent based on keywords.
     *   **Data Persistence:** Uses the browser's `localStorage` to save and load the chat history.
 
@@ -58,14 +63,14 @@ graph TD
 
 ### ☁️ Infrastructure & Deployment
 
-*   **Technologies:** Docker, Nginx, GitHub Pages.
-*   **Responsibilities:** The application includes a multi-stage `Dockerfile` for containerization and is configured for automated deployment to GitHub Pages via GitHub Actions.
+*   **Technologies:** Docker, Nginx, GitHub Pages, Cloudflare Workers.
+*   **Responsibilities:** The application includes a multi-stage `Dockerfile` for containerization and is configured for automated deployment to GitHub Pages via GitHub Actions. The AI backend is deployed as a Cloudflare Worker.
 
 ## 🔐 API Access Model & Security
 
-`Frontend Browser -> Google Gemini API`
+`Frontend Browser -> Cloudflare Worker -> Google Gemini API`
 
-> **⚠️ Security Warning:** This client-side approach is suitable for development and demonstration purposes only. It is **not secure for production** because the API key can be extracted from the application's code. For a production environment, all API calls should be routed through a secure backend proxy.
+> **✅ Enhanced Security:** The API key is now securely stored and managed by the Cloudflare Worker, preventing its exposure on the client-side. This approach is suitable for production environments.
 
 # 🤖 The AI Assistant: "AG Gift."
 
@@ -136,5 +141,5 @@ The portfolio is automatically deployed to GitHub Pages whenever changes are pus
 *   **JSX for Templating:** JSX is used for templating, but without the React library.
 *   **Styling:** CSS is used for styling.
 *   **Environment Variables:** Must be prefixed with `VITE_`.
-*   **AI Interaction:** Handled in `index.tsx`.
+*   **AI Interaction:** Handled in `frontend/chatbot.ts` (via Cloudflare Worker).
 *   **Project Data:** Hardcoded in `index.tsx`.

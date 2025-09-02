@@ -1,8 +1,8 @@
 # 🚀 From Direct API Calls to a Control Plane
 
-The current architecture of this application involves direct, client-side calls to the Gemini API. While simple for development, this approach has limitations in security and scalability. A more robust, production-ready architecture would introduce a backend layer, sometimes referred to as a **Model Control Plane (MCP)**.
+The initial architecture of this application involved direct, client-side calls to the Gemini API. While simple for development, this approach had limitations in security and scalability. The project has since introduced a basic backend layer using a **Cloudflare Worker**, which serves as a foundational **Model Control Plane (MCP)**.
 
-## 🔒 Current Architecture: Direct API Access
+## 🔒 Previous Architecture: Direct API Access
 
 ### Diagram
 
@@ -13,13 +13,29 @@ graph TD
 
 *   **👍 Pros:** Simple to set up, no backend infrastructure required.
 *   **👎 Cons:**
-    *   **Insecure:** The API key is exposed on the client side.
-    *   **Limited:** Cannot securely connect to other tools or services (like a database or a private API).
-    *   **Brittle:** Complex logic for choosing between different actions (like search vs. chat) lives on the client and can become difficult to manage.
+    *   **Insecure:** The API key was exposed on the client side.
+    *   **Limited:** Could not securely connect to other tools or services (like a database or a private API).
+    *   **Brittle:** Complex logic for choosing between different actions (like search vs. chat) lived on the client and could become difficult to manage.
 
-## ☁️ Future Architecture: Using a Backend Control Plane
+## ☁️ Current Architecture: Cloudflare Worker as Basic MCP
 
-A better approach is to use a backend that acts as a secure and intelligent bridge between the client and various AI models and tools.
+### Diagram
+
+```mermaid
+graph TD
+    A[Frontend] <--> B{Cloudflare Worker} <--> C[Google Gemini API];
+```
+
+*   **👍 Pros:**
+    *   **Secure:** API key is now securely stored and managed by the Cloudflare Worker.
+    *   **Scalable:** Offloads AI processing from the client.
+    *   **Flexible:** Provides a secure endpoint for future tool orchestration.
+*   **👎 Cons:**
+    *   Still requires client-side logic for tool orchestration (not a true agent).
+
+## ☁️ Future Architecture: Evolving the Backend Control Plane
+
+To evolve this into a more comprehensive and intelligent MCP, the backend would further expand its responsibilities.
 
 ### Diagram
 

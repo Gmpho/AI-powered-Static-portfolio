@@ -7,16 +7,24 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Node modules
+**/node_modules/
+
+# Vite build output
+frontend/dist/
+
+# Cloudflare Worker build output
+worker/dist/
+worker/.wrangler/
 
 # Editor directories and files
-.vscode/*
+.vscode/
 !.vscode/extensions.json
-.idea
+.idea/
+*.sublime-workspace
+*.sublime-project
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
@@ -25,24 +33,25 @@ dist-ssr
 *.tmp
 *.mcp
 
-# Environment variables - IMPORTANT
+# Environment files (never commit secrets)
 .env
 .env.local
 .env.*.local
 .env.test
 .env.production
+frontend/.env
+frontend/.env.local
+worker/.env
+worker/.env.local
 
 .gemini/
 gha-creds-*.json
 .vscode-test/
 
-
 #Ignore vscode AI rules
-.github\instructions\.instructions.md
-
-
-#Ignore vscode AI rules
-.github\instructions\codacy.instructions.md
+.github/instructions/.instructions.md
+.github/instructions/codacy.instructions.md
 
 # Ignore deployment instructions
 plain.text deoloy
+plain.text issues

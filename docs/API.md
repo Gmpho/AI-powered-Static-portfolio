@@ -1,6 +1,6 @@
 # 🛠️ Simulated Tool Contracts (Frontend)
 
-The application simulates a "tool-based" architecture directly within the frontend code. The AI assistant doesn't decide which tool to call; instead, the application logic checks for keywords in the user's message and runs the corresponding function.
+The application simulates a "tool-based" architecture directly within the frontend code. The AI assistant doesn't decide which tool to call; instead, the application logic checks for keywords in the user's message and runs the corresponding function. **Note: While these are simulated tools, the actual AI interaction with the Gemini API is now securely proxied through a Cloudflare Worker.**
 
 These functions are hardcoded in `index.tsx` and provide the data or UI for the chatbot to use.
 

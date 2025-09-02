@@ -4,7 +4,7 @@ To ensure the reliability and quality of this application, especially as new fea
 
 ## 🤔 Why End-to-End Testing?
 
-E2E testing is critical for an application like this because it validates the entire workflow from the user's perspective. It simulates real user interactions in a browser, ensuring that the UI, application logic, and API integrations all work together correctly.
+E2E testing is critical for an application like this because it validates the entire workflow from the user's perspective. It simulates real user interactions in a browser, ensuring that the UI, application logic, and API integrations all work together correctly. **This includes interactions with the deployed Cloudflare Worker for AI responses.**
 
 ## 🤖 Recommended Core Testing Workflow with Playwright
 
