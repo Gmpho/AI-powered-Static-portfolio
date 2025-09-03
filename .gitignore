@@ -16,7 +16,9 @@ frontend/dist/
 # Cloudflare Worker build output
 worker/dist/
 worker/.wrangler/
-
+.wrangler
+node_modules
+.dev.vars
 # Editor directories and files
 .vscode/
 !.vscode/extensions.json

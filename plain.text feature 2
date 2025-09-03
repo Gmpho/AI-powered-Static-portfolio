@@ -1,0 +1,377 @@
+CHATBOT.TS this is feature for chatbot.ts 
+
+
+import { GoogleGenAI } from "@google/genai";
+import type { Project, ProjectMetadata } from './index';
+
+// --- Type Definitions ---
+
+// Fix: Add type definitions for the Web Speech API to resolve TypeScript errors.
+interface SpeechRecognitionAlternative {
+  readonly transcript: string;
+  readonly confidence: number;
+}
+
+interface SpeechRecognitionResult {
+  readonly isFinal: boolean;
+  readonly length: number;
+  item(index: number): SpeechRecognitionAlternative;
+  [index: number]: SpeechRecognitionAlternative;
+}
+
+interface SpeechRecognitionResultList {
+  readonly length: number;
+  item(index: number): SpeechRecognitionResult;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionEvent extends Event {
+  readonly resultIndex: number;
+  readonly results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  readonly error: string;
+}
+  
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  lang: string;
+  interimResults: boolean;
+  start(): void;
+  stop(): void;
+  onstart: () => void;
+  onend: () => void;
+  onresult: (event: SpeechRecognitionEvent) => void;
+  onerror: (event: SpeechRecognitionErrorEvent) => void;
+}
+
+// Custom type for conversation history
+interface Content {
+  role: 'user' | 'model';
+  parts: { text: string }[];
+}
+
+// The response schema for the contactEmail tool.
+interface ContactEmailResponse {
+  status: 'sent' | 'failed';
+  info?: string;
+}
+
+/**
+ * The system instruction context provided to the Gemini API for general chat.
+ * @param {Project[]} projects The list of projects to use for context.
+ * @returns {string} The formatted system instruction string.
+ */
+const getProjectsContext = (projects: Project[]): string => `
+A delightful and insightful AI guide for Gift Mpho's personal portfolio website. 
+Your persona is that of a tech-savvy, enthusiastic, and slightly playful assistant.
+Your primary mission is to showcase Gift's projects in the best possible light and engage visitors in a memorable way.
+This portfolio has a semantic search function that you are not responsible for. If the user asks you to find or search for a project, the system will handle it.
+You are responsible for general conversation.
+
+**Your Core Directives:**
+- **Be Enthusiastic & Descriptive:** Don't just list facts. Use vivid language. For example, instead of "It uses React," say "It's built on the powerful React library, allowing for a lightning-fast and dynamic user experience."
+- **Ask Clarifying Questions:** If a user's query is vague (e.g., "tell me about your work"), prompt them for more details. For instance: "I can definitely do that! Are you more interested in the cutting-edge AI projects, or the full-stack web applications?"
+- **Maintain a Witty but Professional Tone:** Keep it professional, but inject personality.
+    - *Example 1 (Tech Stack):* If asked about my tech stack, you could say: "Ah, the secret sauce! I'm powered by the magical Gemini API and a whole lot of TypeScript. It's like having a wizard in the machine. 😉 What part of the magic are you most curious about?"
+- **Be Proactive & Suggest Questions:** Don't just wait for the next prompt. After answering a question, suggest a related, engaging follow-up question to guide the conversation.
+- **Keep Answers Concise but Informative:** Use simple markdown (like bolding and bullet points) to make your answers easy to scan and digest.
+- **Always be helpful and positive.**
+
+Here is the project data you have access to for conversational purposes:
+${projects
+  .map(
+    (p) =>
+      `- **${p.title}**: ${p.description} (Key Technologies: ${p.tags.join(
+        ", ",
+      )}) [URL: ${p.url}]`,
+  )
+  .join("\n")}
+`;
+
+/**
+ * Main function to initialize the chatbot and all its functionalities.
+ * @param projects The list of project data.
+ * @param projectMetadataTool A function to fetch project metadata.
+ * @param findBestProjectMatchByKeywords A function to perform keyword-based project search.
+ */
+export function initializeChatbot(
+    projects: Project[],
+    projectMetadataTool: () => Promise<{ projects: ProjectMetadata[] }>,
+    findBestProjectMatchByKeywords: (query: string, projectsToSearch: ProjectMetadata[]) => ProjectMetadata | null
+) {
+    // --- AI Client Initialization ---
+    let ai: GoogleGenAI | null = null;
+    try {
+        if (process.env.API_KEY) {
+            ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        } else {
+            console.warn("API_KEY environment variable not found. Chatbot functionality will be disabled.");
+        }
+    } catch (e) {
+        console.error("Failed to initialize GoogleGenAI:", e);
+    }
+    
+    // --- DOM Element References ---
+    const fab = document.getElementById("chatbot-fab");
+    const chatWindow = document.getElementById("chatbot-window");
+    const closeBtn = document.getElementById("chatbot-close");
+    const chatMessages = document.getElementById("chatbot-messages");
+    const chatForm = document.getElementById("chatbot-form");
+    const chatInput = document.getElementById("chatbot-input") as HTMLInputElement;
+    const sendBtn = document.getElementById("chatbot-send") as HTMLButtonElement;
+    const micBtn = document.getElementById("chatbot-mic") as HTMLButtonElement;
+
+    // State variables
+    let conversationHistory: Content[] = [];
+    let lastSpeechConfidence: number | null = null;
+    const projectsContext = getProjectsContext(projects);
+
+    // --- Speech Recognition Setup ---
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    let recognition: SpeechRecognition | null = null;
+    let isRecording = false;
+
+    if (SpeechRecognitionAPI) {
+        recognition = new SpeechRecognitionAPI();
+        recognition.continuous = false;
+        recognition.lang = 'en-US';
+        recognition.interimResults = true;
+
+        recognition.onstart = () => {
+            isRecording = true;
+            if (micBtn) {
+                micBtn.classList.add('is-recording');
+                micBtn.setAttribute('aria-label', 'Stop recording');
+                micBtn.innerHTML = '<i class="fas fa-stop"></i>';
+            }
+            if (chatInput) chatInput.placeholder = 'Listening...';
+        };
+
+        recognition.onend = () => {
+            isRecording = false;
+            if (micBtn) {
+                micBtn.classList.remove('is-recording');
+                micBtn.setAttribute('aria-label', 'Use microphone');
+                micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+            }
+            if (chatInput) chatInput.placeholder = 'Ask about my projects...';
+            if (sendBtn && chatInput) sendBtn.disabled = chatInput.value.trim() === '';
+        };
+        
+        recognition.onresult = (event) => {
+            let transcript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                transcript += event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    lastSpeechConfidence = event.results[i][0].confidence;
+                }
+            }
+            if (chatInput) chatInput.value = transcript;
+            if (sendBtn && chatInput) sendBtn.disabled = chatInput.value.trim() === '';
+        };
+
+        recognition.onerror = (event) => {
+            console.error('Speech recognition error:', event.error);
+            if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                addBotMessage("I need permission to use your microphone. Please enable it in your browser settings.");
+                if (micBtn) micBtn.disabled = true;
+            } else if (event.error === 'network') {
+                addBotMessage("Sorry, I'm having trouble connecting to the speech service. Please check your internet connection and try again.");
+            } else {
+                addBotMessage("Sorry, an unknown error occurred with speech recognition. Please try again.");
+            }
+        };
+    } else {
+        console.warn("Speech Recognition API not supported in this browser.");
+        if (micBtn) micBtn.style.display = 'none';
+    }
+
+    function toggleSpeechRecognition() {
+        if (!recognition) return;
+        if (isRecording) {
+            recognition.stop();
+        } else {
+            try {
+                recognition.start();
+            } catch (e) {
+                console.error("Could not start recognition:", e);
+                addBotMessage("Sorry, I couldn't start listening. Please try again.");
+            }
+        }
+    }
+
+    // --- Simulated Tools ---
+    async function contactEmailTool(name: string, email: string, message: string): Promise<ContactEmailResponse> {
+        console.log(`Simulating sending email:`, { name, email, message });
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        if (!name || !email || !message || !email.includes('@')) {
+            return { status: 'failed', info: 'Please fill out all fields correctly.' };
+        }
+        if (Math.random() > 0.1) {
+            return { status: 'sent' };
+        } else {
+            return { status: 'failed', info: 'An unknown server error occurred.' };
+        }
+    }
+    
+    // --- Chat UI Functions ---
+    function addMessage(content: string | HTMLElement, sender: 'user' | 'bot' | 'loading'): HTMLElement {
+        const messageEl = document.createElement("div");
+        messageEl.classList.add("message", sender);
+        const bubble = document.createElement("div");
+        bubble.classList.add("message-bubble");
+        if (sender === 'loading') {
+            bubble.innerHTML = (typeof content === 'string' && content) ? content : '<div class="dot-flashing"></div>';
+        } else if (typeof content === 'string') {
+            let text = content;
+            text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            text = text.replace(/^\s*\*\s/gm, '<br>• ');
+            text = text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+            bubble.innerHTML = text;
+        } else {
+            bubble.appendChild(content);
+        }
+        messageEl.appendChild(bubble);
+        chatMessages?.appendChild(messageEl);
+        if (chatMessages) {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        return messageEl;
+    }
+    
+    function addBotMessage(text: string) {
+        return addMessage(text, 'bot');
+    }
+    
+    function addUserMessage(text: string) {
+        addMessage(text, 'user');
+    }
+    
+    function displayContactForm() {
+        const formContainer = document.createElement('div');
+        formContainer.className = 'contact-form-container';
+        formContainer.innerHTML = `
+            <p>Sure! Please fill out the form below and I'll send the message for you.</p>
+            <form id="chatbot-contact-form" aria-labelledby="contact-form-title">
+                <h4 id="contact-form-title" class="sr-only">Contact Form</h4>
+                <div><label for="contact-name">Name</label><input type="text" id="contact-name" name="name" required autocomplete="name" /></div>
+                <div><label for="contact-email">Email</label><input type="email" id="contact-email" name="email" required autocomplete="email" /></div>
+                <div><label for="contact-message">Message</label><textarea id="contact-message" name="message" rows="4" required></textarea></div>
+                <button type="submit" class="contact-submit-btn">Send Message</button>
+            </form>
+        `;
+        const formMessageEl = addMessage(formContainer, 'bot');
+        const form = formContainer.querySelector('#chatbot-contact-form') as HTMLFormElement;
+        if (form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const submitBtn = form.querySelector('.contact-submit-btn') as HTMLButtonElement;
+                if (!submitBtn) return;
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Sending...';
+                const formData = new FormData(form);
+                const name = formData.get('name') as string;
+                const email = formData.get('email') as string;
+                const message = formData.get('message') as string;
+                formMessageEl.remove();
+                const loadingEl = addMessage("Sending your message...", "loading");
+                const result = await contactEmailTool(name, email, message);
+                loadingEl.remove();
+                if (result.status === 'sent') {
+                    addBotMessage("Thanks! Your message has been sent successfully. We'll be in touch soon.");
+                } else {
+                    addBotMessage(`Sorry, there was an error: ${result.info || 'Unknown error'}. Please try again.`);
+                }
+            });
+        }
+    }
+
+    async function handleChatSubmit(e: Event) {
+        e.preventDefault();
+        if (!chatInput || chatInput.value.trim() === "" || !ai) return;
+        const userMessage = chatInput.value.trim();
+        lastSpeechConfidence = null;
+        addUserMessage(userMessage);
+        chatInput.value = "";
+        if (sendBtn) sendBtn.disabled = true;
+        const contactKeywords = ['contact', 'email', 'message', 'send a message'];
+        if (contactKeywords.some(keyword => userMessage.toLowerCase().includes(keyword))) {
+            displayContactForm();
+            return;
+        }
+        const searchKeywords = ['find', 'search', 'look for', 'looking for'];
+        if (searchKeywords.some(keyword => userMessage.toLowerCase().includes(keyword))) {
+            const loadingEl = addMessage("Searching for relevant projects...", "loading");
+            const { projects: allProjects } = await projectMetadataTool();
+            const foundProject = findBestProjectMatchByKeywords(userMessage, allProjects);
+            loadingEl.remove();
+            if (foundProject) {
+                const resultText = `I found a project that seems like a great match!
+
+**${foundProject.name}**
+${foundProject.description}
+
+*Key Technologies: ${foundProject.tags.join(", ")}*
+
+You can [view the project here](${foundProject.url}).`;
+                addBotMessage(resultText);
+            } else {
+                addBotMessage("I couldn't find a project that perfectly matched your description. Could you try rephrasing your search?");
+            }
+            return;
+        }
+        conversationHistory.push({ role: 'user', parts: [{ text: userMessage }] });
+        const loadingEl = addMessage("", "loading");
+        try {
+            const HISTORY_LIMIT = 10;
+            if (conversationHistory.length > HISTORY_LIMIT) {
+                conversationHistory = conversationHistory.slice(conversationHistory.length - HISTORY_LIMIT);
+            }
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: conversationHistory,
+                config: { systemInstruction: projectsContext },
+            });
+            const botResponseText = response.text;
+            conversationHistory.push({ role: 'model', parts: [{ text: botResponseText }] });
+            loadingEl.remove();
+            addBotMessage(botResponseText);
+        } catch (error) {
+            console.error("Gemini API Error:", error);
+            loadingEl.remove();
+            addBotMessage("Oops! I had trouble connecting to the AI. Please check the browser console for details and ensure your API key is correctly configured.");
+        }
+    }
+
+    // --- Event Listeners ---
+    fab?.addEventListener("click", () => {
+        chatWindow?.classList.toggle("visible");
+        fab.setAttribute('aria-label', chatWindow?.classList.contains('visible') ? 'Close chat' : 'Open chat');
+    });
+    closeBtn?.addEventListener("click", () => {
+        chatWindow?.classList.remove("visible");
+        fab?.setAttribute('aria-label', 'Open chat');
+    });
+    chatForm?.addEventListener("submit", handleChatSubmit);
+    chatInput?.addEventListener('input', () => {
+        if (sendBtn && chatInput) sendBtn.disabled = chatInput.value.trim() === '';
+        lastSpeechConfidence = null;
+    });
+    micBtn?.addEventListener('click', toggleSpeechRecognition);
+
+    // --- Initial Welcome Message ---
+    const loadingMessage = addMessage("Warming up the AI assistant...", "loading");
+    if (!ai) {
+        loadingMessage.remove();
+        addBotMessage("Hello! The AI assistant is currently disabled because an API key has not been configured. You can still browse my projects.");
+        if (chatInput) chatInput.disabled = true;
+        if (sendBtn) sendBtn.disabled = true;
+        if (micBtn) micBtn.disabled = true;
+        if (chatForm) (chatForm.querySelector('#chatbot-input') as HTMLInputElement).placeholder = 'Chatbot disabled.';
+    } else {
+        loadingMessage.remove();
+        addBotMessage("Hello! I'm G.E.M., your AI guide. Ask me a question, or try searching for a project (e.g., 'Find a project about UI/UX'). You can also ask me to 'send a message' to get in touch!");
+    }
+}
