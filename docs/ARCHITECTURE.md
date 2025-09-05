@@ -7,8 +7,10 @@ This document outlines the architecture of the AI-Powered Portfolio. The current
 ```mermaid
 graph TD
     A[User] --> B{Browser (SPA)};
-    B --> C{Cloudflare Worker};
-    C --> D[Google Gemini API];
+    B --> C[Static HTML/CSS/JS];
+    B --> D{Cloudflare Worker};
+    D --> F{Gemini API};
+    B --> E[localStorage];
 ```
 
 ## Layers

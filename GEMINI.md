@@ -119,9 +119,31 @@ An end-to-end (E2E) testing framework like **Playwright** is recommended to vali
 
 ## Development
 
-1.  **Install dependencies:** `npm install`
-2.  **Set up Environment Variables:** Create a `.env.local` file with your `VITE_API_KEY`.
-3.  **Run the development server:** `npm run dev`
+1.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
+
+2.  **Set up Environment Variables:**
+    *   In the `frontend` directory, create a `.env.local` file with the following content:
+        ```
+        VITE_WORKER_URL="http://127.0.0.1:8787"
+        ```
+    *   In the `worker` directory, create a `.dev.vars` file with the following content:
+        ```
+        GEMINI_API_KEY="YOUR_GOOGLE_AI_STUDIO_KEY_HERE"
+        ALLOWED_ORIGINS="http://localhost:5173,http://127.0.0.1:5173"
+        ```
+
+3.  **Run the development servers:**
+    *   In one terminal, start the frontend server:
+        ```bash
+        npm run dev
+        ```
+    *   In a second terminal, start the worker server from the root directory of the project:
+        ```bash
+        npx wrangler dev worker/src/index.ts
+        ```
 
 ## Production Build
 
@@ -143,3 +165,35 @@ The portfolio is automatically deployed to GitHub Pages whenever changes are pus
 *   **Environment Variables:** Must be prefixed with `VITE_`.
 *   **AI Interaction:** Handled in `frontend/chatbot.ts` (via Cloudflare Worker).
 *   **Project Data:** Hardcoded in `index.tsx`.
+
+#  Debugging and Troubleshooting
+
+This section outlines some of the common issues that can be encountered during local development and how to resolve them.
+
+## Worker Not Starting
+
+If you run `npx wrangler dev` from the wrong directory and see a `Missing entry-point` error, it means that Wrangler doesn't know where to find your main worker script.
+
+**Solution:**
+
+1.  Make sure you have a `wrangler.toml` file in your `worker` directory with the following content:
+
+    ```toml
+    name = "ai-powered-static-portfolio-worker"
+    main = "src/index.ts"
+    compatibility_date = "2023-10-30"
+    ```
+
+2.  Run the worker from the **root directory** of the project, specifying the path to the worker script:
+
+    ```bash
+    npx wrangler dev worker/src/index.ts
+    ```
+
+## Chatbot Not Responding (CORS or 404 Errors)
+
+If the chatbot is not responding and you see CORS or 404 errors in your browser's developer console, it could be due to a few reasons:
+
+*   **The worker is not running:** Make sure your worker is running correctly by checking the output of the `npx wrangler dev` command.
+*   **Incorrect `ALLOWED_ORIGINS`:** Make sure the `ALLOWED_ORIGINS` variable in your `worker/.dev.vars` file matches the origin of your frontend application (e.g., `http://localhost:5173`).
+*   **Incorrect endpoint:** Make sure your frontend is calling the correct endpoint on the worker. In the current implementation, the only endpoint is `/chat`.
