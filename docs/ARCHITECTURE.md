@@ -4,14 +4,9 @@ This document outlines the architecture of the AI-Powered Portfolio. The current
 
 ## Diagram
 
-```mermaid
-graph TD
-    A[User] --> B{Browser (SPA)};
-    B --> C[Static HTML/CSS/JS];
-    B --> D{Cloudflare Worker};
-    D --> F{Gemini API};
-    B --> E[localStorage];
-```
+![Architecture Diagram](Architecturemd.svg)
+
+
 
 ## Layers
 

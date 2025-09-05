@@ -50,14 +50,8 @@ The application is a **client-side, single-page application (SPA)** that interac
 
 ## Diagram
 
-```mermaid
-graph TD
-    A[User] --> B{Browser (SPA)};
-    B --> C[Static HTML/CSS/JS];
-    B --> D{Cloudflare Worker};
-    D --> F{Gemini API};
-    B --> E[localStorage];
-```
+![Architecture Diagram](docs/Readme.svg)
+
 
 ## Layers
 
