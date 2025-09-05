@@ -33,6 +33,6 @@ graph TD
 6.  **Deploy to GitHub Pages:** The final step deploys the uploaded artifact to GitHub Pages, making the new version of the website live.
 7.  **Set up Worker Environment:** This step configures the environment for the Cloudflare Worker, including any necessary secrets or API keys.
 8.  **Install Worker Dependencies:** The command `npm ci` is used in the `worker/` directory to install the worker's dependencies.
-9.  **Deploy Cloudflare Worker:** The `wrangler deploy` command is executed in the `worker/` directory to deploy the AI backend to Cloudflare Workers.
+9.  **Deploy Cloudflare Worker:** The `npx wrangler deploy worker/src/index.ts` command is executed from the root of the project to deploy the AI backend to Cloudflare Workers.
 
 This automated workflow ensures that any changes pushed to the `main` branch are quickly and reliably deployed to the live site.

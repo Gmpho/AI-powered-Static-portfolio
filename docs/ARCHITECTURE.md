@@ -4,9 +4,12 @@ This document outlines the architecture of the AI-Powered Portfolio. The current
 
 ## Diagram
 
-![Architecture Website Portfolio](../architecture%20website%20portfolio.png)
-
-
+```mermaid
+graph TD
+    A[User] --> B{Browser (SPA)};
+    B --> C{Cloudflare Worker};
+    C --> D[Google Gemini API];
+```
 
 ## Layers
 
@@ -21,7 +24,7 @@ This document outlines the architecture of the AI-Powered Portfolio. The current
 *   **Technologies:** TypeScript.
 *   **Responsibilities:** This is the core of the application, running entirely in the user's browser.
     *   **State Management:** Manages the application state, such as the conversation history.
-    *   **AI Integration:** Handles communication with the Cloudflare Worker, which securely proxies requests to the Gemini API.
+    *   **AI Integration:** Handles communication with the Cloudflare Worker, which securely calls the Google Gemini API directly.
     *   **Orchestration Logic:** Contains the logic to interpret user intent. Based on keywords (e.g., "search," "contact"), it decides whether to perform a semantic search, display the contact form, or engage in a general conversation.
     *   **Data Persistence:** Uses the browser's `localStorage` to save and load the chat history, allowing conversations to persist between sessions.
 
