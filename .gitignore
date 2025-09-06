@@ -9,6 +9,7 @@ lerna-debug.log*
 
 # Node modules
 **/node_modules/
+dist/
 
 # Vite build output
 frontend/dist/
@@ -19,6 +20,8 @@ worker/.wrangler/
 .wrangler
 node_modules
 .dev.vars
+.r2/
+
 # Editor directories and files
 .vscode/
 !.vscode/extensions.json
@@ -45,6 +48,12 @@ frontend/.env
 frontend/.env.local
 worker/.env
 worker/.env.local
+.keys
+.secrets
+.secret-*
+*.pem
+*.key
+*.crt
 
 .gemini/
 gha-creds-*.json
