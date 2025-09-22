@@ -1,7 +1,4 @@
-
-
 import { sendPrompt } from "./chatbot";
-
 
 // --- DOM Element References ---
 const projectsContainer = document.querySelector(".projects");
@@ -14,7 +11,6 @@ const chatInput = document.getElementById("chatbot-input") as HTMLInputElement;
 const sendBtn = document.getElementById("chatbot-send") as HTMLButtonElement;
 const micBtn = document.getElementById("chatbot-mic") as HTMLButtonElement;
 const themeToggleBtn = document.getElementById('theme-toggle');
-
 
 // --- Project Data (Hardcoded for now) ---
 interface Project {
@@ -193,20 +189,26 @@ async function handleChatSubmit(e: Event) {
   if(sendBtn) sendBtn.disabled = true;
 
   // Contact form orchestration logic
-  const contactKeywords = ['contact', 'email', 'message', 'send a message'];
+  // Refined keywords to be more specific and avoid accidental triggers.
+  const contactKeywords = ['contact form', 'send email', 'send me a message', 'get in touch'];
   if (contactKeywords.some(keyword => userMessage.toLowerCase().includes(keyword))) {
     displayContactForm();
+    if(sendBtn) sendBtn.disabled = false; // Re-enable button since we are not submitting
     return;
   }
 
   // Fallback to conversational chat (now using the worker)
-  addMessage("Thinking...", "loading");
+  const loadingMessage = addMessage("Thinking...", "loading");
   try {
     const botResponseText = await sendPrompt(userMessage);
     addBotMessage(botResponseText);
   } catch (error) {
     console.error("Chatbot error:", error);
     addBotMessage("Oops! I seem to be having a little trouble. Please try again in a moment.");
+  } finally {
+    // Always re-enable the send button and remove the loading indicator
+    if(sendBtn) sendBtn.disabled = false;
+    loadingMessage.remove();
   }
 }
 
@@ -237,13 +239,18 @@ function handleThemeToggle() {
 
 // Toggles the chat window's visibility when the FAB is clicked.
 fab?.addEventListener("click", () => {
-  chatWindow?.classList.toggle("visible");
-  fab.setAttribute('aria-label', chatWindow?.classList.contains('visible') ? 'Close chat' : 'Open chat');
+  const isVisible = chatWindow?.classList.toggle("visible");
+  (chatWindow as HTMLElement).inert = !isVisible;
+  fab.setAttribute('aria-label', isVisible ? 'Close chat' : 'Open chat');
+  if (isVisible) {
+    chatInput?.focus();
+  }
 });
 
 // Hides the chat window when the close button is clicked.
 closeBtn?.addEventListener("click", () => {
   chatWindow?.classList.remove("visible");
+  (chatWindow as HTMLElement).inert = true;
   fab?.setAttribute('aria-label', 'Open chat');
 });
 
@@ -258,7 +265,9 @@ chatInput?.addEventListener('input', () => {
 });
 
 // Starts or stops voice recognition when the mic button is clicked.
-// micBtn?.addEventListener('click', toggleSpeechRecognition); // Removed for now, as it requires more setup
+micBtn?.addEventListener('click', () => {
+    console.log('Voice recognition not implemented yet.');
+});
 
 // Add event listener for theme toggle
 themeToggleBtn?.addEventListener('click', handleThemeToggle);

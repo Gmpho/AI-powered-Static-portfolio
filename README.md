@@ -103,7 +103,7 @@ The application is a **client-side, single-page application (SPA)** that interac
         GEMINI_API_KEY="YOUR_GOOGLE_AI_STUDIO_KEY_HERE"
         ALLOWED_ORIGINS="http://localhost:5173,http://127.0.0.1:5173"
         ```
-    *   Ensure you have a `wrangler.toml` file in your `worker` directory (it was created during debugging).
+    *   **Important:** This project now uses a `wrangler.toml` file for the worker configuration. If you have an old `wrangler.jsonc` file in your `worker` directory, please delete it to avoid conflicts.
 
 3.  **Run the development servers:**
     *   In one terminal, start the frontend server:
