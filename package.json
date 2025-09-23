@@ -9,12 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@google/genai": "^1.16.0"
+    "@google/genai": "latest"
   },
   "devDependencies": {
-    "@types/node": "^22.14.0",
-    "typescript": "~5.8.2",
-    "vite": "^7.1.4"
+    "@types/node": "latest",
+    "typescript": "latest",
+    "vite": "latest"
   },
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "latest"
