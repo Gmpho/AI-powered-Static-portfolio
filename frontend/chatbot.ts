@@ -24,21 +24,19 @@ export async function sendPrompt(prompt: string): Promise<string> {
       throw new Error("Failed to get a response from the worker.");
     }
 
-    const data: any = await response.json();
+    const data: WorkerResponse = await response.json();
 
     if (data.response) {
       return data.response;
-    }
-
-    // Handle the case where the worker returns the raw Gemini response
-    if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-        return data.candidates[0].content.parts[0].text;
     }
 
     throw new Error(data.error || "Received an unknown error from the worker.");
 
   } catch (error) {
     console.error("Fetch request to worker failed:", error);
-    throw error;
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error(`An unknown error occurred: ${String(error)}`);
   }
 }

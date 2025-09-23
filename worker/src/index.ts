@@ -3,6 +3,16 @@ interface Env {
     ALLOWED_ORIGINS?: string;
 }
 
+interface GeminiResponse {
+    candidates: {
+        content: {
+            parts: {
+                text: string;
+            }[];
+        };
+    }[];
+}
+
 export default {
     async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
         const origin = request.headers.get('Origin') || '';
@@ -68,9 +78,10 @@ export default {
                 return new Response(`Error from AI service: ${errorText}`, { status: geminiResponse.status, headers: corsHeaders });
             }
 
-            const geminiData = await geminiResponse.json();
+            const geminiData = await geminiResponse.json() as GeminiResponse;
+            const responseText = geminiData.candidates[0]?.content?.parts[0]?.text || 'Sorry, I could not get a response.';
 
-            return new Response(JSON.stringify(geminiData), {
+            return new Response(JSON.stringify({ response: responseText }), {
                 headers: { 'Content-Type': 'application/json', ...corsHeaders },
             });
 

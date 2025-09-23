@@ -10,11 +10,13 @@
 		"cf-typegen": "wrangler types"
 	},
 	"dependencies": {
-		"@google/generative-ai": "latest"
+		"@google/generative-ai": "latest",
+		"copy-of-ai-powered-portfolio": "file:.."
 	},
 	"devDependencies": {
 		"@cloudflare/vitest-pool-workers": "latest",
 		"typescript": "latest",
 		"vitest": "latest",
-		    "wrangler": "latest"	}
+		"wrangler": "latest"
+	}
 }
