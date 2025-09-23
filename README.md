@@ -6,7 +6,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Google Gemini API](https://img.shields.io/badge/Google%20Gemini%20API-blue?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
 [![GitHub Pages Deploy](https://github.com/Gmpho/AI-powered-Static-portfolio/actions/workflows/static.yml/badge.svg)](https://github.com/Gmpho/AI-powered-Static-portfolio/actions/workflows/static.yml)
-[![Cloudflare Worker Deploy](https://img.shields.io/badge/Cloudflare%20Worker-Deployed-orange?style=flat&logo=cloudflare&logoColor=white)](https://dash.cloudflare.com/) <!-- Placeholder, needs actual status badge if available -->
+[![Cloudflare Worker Deploy](https://img.shields.io/badge/Cloudflare%20Worker-Deployed-orange?style=flat&logo=cloudflare&logoColor=white)](https://dash.cloudflare.com/)
 
 An interactive portfolio that leverages the Gemini API to provide a dynamic, conversational experience. This is not just a static portfolio; it's an interactive application where users can chat with an AI assistant to learn more about my work.
 
@@ -42,6 +42,7 @@ This project is built with a selection of modern and efficient technologies, cho
 
 -   **Frontend**: TypeScript, HTML5, CSS3 (No framework, uses JavaScript template literals for HTML templating)
 -   **AI Layer**: Cloudflare Workers (for secure API proxy, calling Google Gemini API directly), Google Gemini API
+
 -   **Speech Recognition**: Web Speech API
 
 # 🏗️ Architecture
@@ -65,7 +66,7 @@ The application is a **client-side, single-page application (SPA)** that interac
 *   **Technologies:** TypeScript.
 *   **Responsibilities:** This is the core of the application, running entirely in the user's browser.
     *   **State Management:** Manages the application state, such as the conversation history.
-    *   **AI Integration:** Handles communication with the Cloudflare Worker, which securely calls the Google Gemini API directly.
+    *   **AI Integration:** Handles communication with the Cloudflare Worker, which processes and simplifies the Gemini API's raw response before sending a clean, structured response to the frontend.
     *   **Orchestration Logic:** Contains the logic to interpret user intent based on keywords.
     *   **Data Persistence:** Uses the browser's `localStorage` to save and load the chat history.
 
@@ -84,16 +85,15 @@ The application is a **client-side, single-page application (SPA)** that interac
 
 `Frontend Browser -> Cloudflare Worker -> Google Gemini API`
 
-> **✅ Enhanced Security:** The API key is now securely stored and managed by the Cloudflare Worker, preventing its exposure on the client-side. This approach is suitable for production environments.
+> **✅ Enhanced Security:** The `GEMINI_API_KEY` and `ALLOWED_ORIGINS` are securely stored as **Cloudflare Worker secrets**, preventing their exposure. The `VITE_WORKER_URL` for the frontend is stored as a **GitHub repository secret**. This robust approach is suitable for production environments.
 
 ## 🚀 Quick Start
 
 1.  **Install dependencies:**
-    ```bash
-    npm install
-    ```
+    *   Run `npm install` in the project root.
+    *   Run `npm install --prefix worker` in the project root to install worker-specific dependencies.
 
-2.  **Set up Environment Variables:**
+2.  **Set up Environment Variables (Development):**
     *   In the `frontend` directory, create a `.env.local` file with the following content:
         ```
         VITE_WORKER_URL="http://127.0.0.1:8787"
@@ -103,14 +103,20 @@ The application is a **client-side, single-page application (SPA)** that interac
         GEMINI_API_KEY="YOUR_GOOGLE_AI_STUDIO_KEY_HERE"
         ALLOWED_ORIGINS="http://localhost:5173,http://127.0.0.1:5173"
         ```
-    *   **Important:** This project now uses a `wrangler.toml` file for the worker configuration. If you have an old `wrangler.jsonc` file in your `worker` directory, please delete it to avoid conflicts.
 
-3.  **Run the development servers:**
+3.  **Set up Environment Variables (Production):**
+    *   **Cloudflare Worker Secrets:**
+        *   `GEMINI_API_KEY`: Your Google AI Studio key (set via `npx wrangler secret put GEMINI_API_KEY`).
+        *   `ALLOWED_ORIGINS`: Your GitHub Pages URL (e.g., `https://gmpho.github.io`) (set via `npx wrangler secret put ALLOWED_ORIGINS`).
+    *   **GitHub Repository Secret:**
+        *   `VITE_WORKER_URL`: The URL of your deployed Cloudflare Worker (e.g., `https://ai-powered-static-portfolio-worker.<YOUR_ACCOUNT_NAME>.workers.dev`) (set via `gh secret set VITE_WORKER_URL`).
+
+4.  **Run the development servers:**
     *   In one terminal, start the frontend server:
         ```bash
         npm run dev
         ```
-    *   In a second terminal, start the worker server from the root directory of the project:
+    *   In a second terminal, start the worker server from the project root:
         ```bash
         npx wrangler dev worker/src/index.ts
         ```
