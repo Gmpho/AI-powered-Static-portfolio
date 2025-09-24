@@ -1,28 +1,36 @@
 ```mermaid
 flowchart LR
-    subgraph "Browser"
-        A[<i class="fas fa-window-maximize"></i> Vite SPA]
+    %% Nodes
+    subgraph Browser [Browser — Vite SPA]
+        A[Vite SPA — Client-side SPA]
     end
 
-    subgraph "Cloudflare"
-        B[<i class="fas fa-cloud"></i> Worker]
-        C[(<i class="fas fa-database"></i> KV Store)]
+    subgraph Cloudflare [Cloudflare]
+        B[Worker — API Proxy & Auth]
+        C[KV — RATE_LIMIT_KV (optional)]
     end
 
-    subgraph "Google Cloud"
-        D[<i class="fab fa-google"></i> Gemini API]
+    subgraph GoogleCloud [Google Cloud]
+        D[Gemini API — Generative Models]
     end
-
-    %% Styling
-    style A fill:#EBF5FB,stroke:#2E86C1,stroke-width:2px
-    style B fill:#E8F8F5,stroke:#1ABC9C,stroke-width:2px
-    style C fill:#E8F8F5,stroke:#1ABC9C,stroke-width:2px
-    style D fill:#FDF2E9,stroke:#E67E22,stroke-width:2px
 
     %% Connections
-    A -- "POST /chat" --> B
-    B -- "Auth & Rate Limit" --> C
-    B -- "generateContent" --> D
-    D -- "{ response }" --> B
-    B -- "JSON" --> A
+    A -->|POST /chat| B
+    B -->|Enforce rate limits & auth| C
+    B -->|generateContent / embeddings| D
+    D -->|{ response }| B
+    B -->|JSON response| A
+
+    %% Styling
+    classDef browser fill:#E8F6FF,stroke:#1E90FF,stroke-width:1.5px,color:#03396c;
+    classDef cloud fill:#E8FFF2,stroke:#05A678,stroke-width:1.5px,color:#064a33;
+    classDef kv fill:#FFF8E8,stroke:#FF9F1C,stroke-width:1px,color:#7a4a00;
+    classDef google fill:#FFF4E6,stroke:#FF8C42,stroke-width:1.5px,color:#663300;
+
+    class A browser;
+    class B cloud;
+    class C kv;
+    class D google;
+
+    linkStyle default stroke:#9aaed8,stroke-width:1px;
 ```
