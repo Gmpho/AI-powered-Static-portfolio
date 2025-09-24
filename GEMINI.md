@@ -204,7 +204,7 @@ If you encounter CORS errors (e.g., "Access to fetch... has been blocked by CORS
 
 **Solution:**
 
-This is typically due to an incorrect value for the `ALLOWED_ORIGINS` secret in your Cloudflare Worker's production environment variables. Ensure the value is set to the exact origin of your GitHub Pages site (e.g., `https://gmpho.github.io`). The browser's CORS policy only considers the scheme and hostname, not the path.
+This is typically due to an an incorrect value for the `ALLOWED_ORIGINS` secret in your Cloudflare Worker's production environment variables. Ensure the value is set to the exact origin of your GitHub Pages site (e.g., `https://gmpho.github.io`). The browser's CORS policy only considers the scheme and hostname, not the path.
 
 ## Test Failures
 
@@ -216,3 +216,40 @@ If your worker tests are failing, especially after updating the worker code, it 
 2.  **Vitest Configuration:** Ensure your `vitest.config.mts` file correctly points to your `wrangler.toml` configuration (e.g., `wrangler: { configPath: './wrangler.toml' }`).
 3.  **Dependency Issues:** If you encounter errors like "Expected Vitest to start running before importing modules" or "Cannot find package", it might indicate dependency conflicts or missing installations. Performing a clean `npm install` in both the root and worker directories (`npm install` and `npm install --prefix worker`) can resolve these.
 4.  **No Tests Found:** If you remove all test files and `vitest` exits with an error, you might need to add the `--passWithNoTests` flag to your test command (e.g., `npx vitest --root worker --passWithNoTests`) to allow the test suite to pass when no tests are present.
+
+## 🔒 Security Enhancements: In-Memory Rate Limiting
+
+To prevent API abuse and protect Cloudflare Workers, a basic in-memory rate limiting mechanism has been implemented. This solution provides immediate protection against rapid, repeated requests from a single IP address.
+
+### How it Works:
+
+*   **Mechanism:** A simple in-memory `Map` tracks request timestamps for each client IP address.
+*   **Window:** Requests are counted within a `60-second` sliding window.
+*   **Limit:** A maximum of `10 requests` are allowed per IP address within that window.
+*   **Response:** If the limit is exceeded, a `429 Too Many Requests` HTTP status code is returned, along with a `Retry-After` header indicating when the client can safely retry.
+
+### Implemented Files:
+
+1.  **`worker/src/rateLimiter.ts`**:
+    *   Contains the core `checkRateLimit(ip: string)` function.
+    *   Manages the `requestTimestamps` map.
+    *   Calculates whether a request is allowed and, if not, the `retryAfter` duration.
+
+2.  **`worker/src/index.ts` (Chat Endpoint):**
+    *   Imports `checkRateLimit` from `./rateLimiter`.
+    *   Applies the rate limiting check at the beginning of the `fetch` handler for the `/chat` endpoint.
+    *   Retrieves the client IP from the `CF-Connecting-IP` header (provided by Cloudflare).
+
+3.  **`worker/src/embed.ts` (Embedding Endpoint):**
+    *   Imports `checkRateLimit` from `./rateLimiter`.
+    *   Applies the rate limiting check at the beginning of the `fetch` handler for the `/embed` endpoint.
+    *   Retrieves the client IP from the `CF-Connecting-IP` header.
+
+### Limitations:
+
+*   **In-Memory (Per-Worker Instance):** This implementation is in-memory, meaning the rate limit counters are local to each running Cloudflare Worker instance. If your worker scales to multiple instances, each instance will maintain its own independent counter. This provides basic protection but is not a truly distributed rate limiter.
+*   **Worker Restarts:** Counters will reset if a worker instance restarts.
+
+### Future Considerations (Distributed Rate Limiting):
+
+For a more robust, production-grade, and distributed rate limiting solution, consider leveraging Cloudflare KV (Key-Value store) as discussed previously. KV allows for shared, persistent counters across all worker instances, providing a more accurate and effective global rate limit.

@@ -12,7 +12,10 @@ const sendBtn = document.getElementById("chatbot-send") as HTMLButtonElement;
 const micBtn = document.getElementById("chatbot-mic") as HTMLButtonElement;
 const themeToggleBtn = document.getElementById('theme-toggle');
 
-// --- Project Data (Hardcoded for now) ---
+// --- Constants ---
+const CHAT_HISTORY_KEY = 'chatHistory';
+
+// --- Interfaces ---
 interface Project {
   title: string;
   description: string;
@@ -20,7 +23,14 @@ interface Project {
   url: string;
 }
 
+interface ChatMessage {
+    text: string;
+    sender: 'user' | 'bot';
+}
+
+// --- Project Data (Hardcoded for now) ---
 const projects: Project[] = [
+// ... (project data remains the same)
   {
     title: "AI Resume Analyzer",
     description:
@@ -48,6 +58,7 @@ const projects: Project[] = [
  * Renders project cards into the projects container.
  */
 async function renderProjects() {
+// ... (renderProjects function remains the same)
   if (!projectsContainer) return;
   projectsContainer.innerHTML = projects
     .map(
@@ -73,6 +84,7 @@ async function renderProjects() {
  * @returns {HTMLElement} The created message element.
  */
 function addMessage(text: string, sender: 'user' | 'bot' | 'loading'): HTMLElement {
+// ... (addMessage function remains the same)
   const messageEl = document.createElement("div");
   messageEl.classList.add("message", sender);
 
@@ -81,7 +93,8 @@ function addMessage(text: string, sender: 'user' | 'bot' | 'loading'): HTMLEleme
 
   if (sender === 'loading') {
     bubble.innerHTML = '<div class="dot-flashing"></div>';
-  } else {
+  }
+  else {
     // Basic markdown for bolding (**text**)
     text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     // Basic markdown for bullet points (* text)
@@ -100,25 +113,62 @@ function addMessage(text: string, sender: 'user' | 'bot' | 'loading'): HTMLEleme
 }
 
 /**
- * Adds a message from the bot to the chat window.
- * @param {string} text - The bot's message text.
+ * Saves the current chat history to localStorage.
  */
-function addBotMessage(text: string) {
-    return addMessage(text, 'bot');
+function saveChatHistory() {
+    if (!chatMessages) return;
+    const messages: ChatMessage[] = Array.from(chatMessages.children)
+        .filter(el => el.classList.contains('user') || el.classList.contains('bot'))
+        .map(el => ({
+            text: (el.querySelector('.message-bubble') as HTMLElement).innerHTML,
+            sender: el.classList.contains('user') ? 'user' : 'bot',
+        }));
+    sessionStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(messages));
 }
 
 /**
- * Adds a message from the user to the chat window.
+ * Loads chat history from sessionStorage and displays it.
+ */
+function loadChatHistory() {
+    const savedHistory = sessionStorage.getItem(CHAT_HISTORY_KEY);
+    if (savedHistory) {
+        const messages: ChatMessage[] = JSON.parse(savedHistory);
+        messages.forEach(msg => {
+            const messageEl = addMessage(msg.text, msg.sender);
+            // We need to re-set the innerHTML because our addMessage sanitizes/formats it
+            (messageEl.querySelector('.message-bubble') as HTMLElement).innerHTML = msg.text;
+        });
+    }
+    else {
+        // Add a default welcome message if no history exists
+        addBotMessage("Hello! I'm an AI assistant. Ask me about the projects you see here, or ask for the contact form.");
+    }
+}
+
+/**
+ * Adds a message from the bot to the chat window and saves history.
+ * @param {string} text - The bot's message text.
+ */
+function addBotMessage(text: string) {
+    const messageEl = addMessage(text, 'bot');
+    saveChatHistory();
+    return messageEl;
+}
+
+/**
+ * Adds a message from the user to the chat window and saves history.
  * @param {string} text - The user's message text.
  */
 function addUserMessage(text: string) {
     addMessage(text, 'user');
+    saveChatHistory();
 }
 
 /**
  * Creates and displays the contact form within the chat window.
  */
 function displayContactForm() {
+// ... (displayContactForm function remains the same, but we'll call saveChatHistory)
     const formContainer = document.createElement('div');
     formContainer.className = 'contact-form-container';
     formContainer.innerHTML = `
@@ -142,8 +192,9 @@ function displayContactForm() {
     `;
 
     const formMessageEl = addMessage(formContainer.outerHTML, 'bot'); // Pass outerHTML to addMessage
+    saveChatHistory(); // Save after adding the form
 
-    const form = formContainer.querySelector('#chatbot-contact-form') as HTMLFormElement;
+    const form = formMessageEl.querySelector('#chatbot-contact-form') as HTMLFormElement;
     if (form) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -158,16 +209,22 @@ function displayContactForm() {
             const email = formData.get('email') as string;
             const message = formData.get('message') as string;
             
-            // Remove form from chat window while processing
-            formMessageEl.remove();
-            addMessage("Sending your message...", "loading");
-
+            // We can remove the form from the DOM, but it's already in history.
+            // Let's replace it with a "sending" message.
+            formMessageEl.innerHTML = '<div class="message-bubble">Sending your message...</div>';
+            
             // Simulate sending email via worker (replace with actual worker call)
+            // In a real app, you would POST this to a `/contact` endpoint on your worker.
+            await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network delay
             const result: { status: 'sent' | 'failed', info?: string } = { status: 'sent' }; // Placeholder
             
+            // Remove the "sending" message
+            formMessageEl.remove();
+
             if (result.status === 'sent') {
-                addBotMessage("Thanks! Your message has been sent successfully. We'll be in touch soon.");
-            } else {
+                addBotMessage(`Thanks, ${name}! Your message has been sent. I'll be in touch soon.`);
+            }
+            else {
                 addBotMessage(`Sorry, there was an error: ${result.info || 'Unknown error'}. Please try again.`);
             }
         });
@@ -176,7 +233,7 @@ function displayContactForm() {
 
 
 /**
- * Handles the chat form submission. It orchestrates between search, contact form, and conversational chat.
+ * Handles the chat form submission.
  * @param {Event} e - The form submission event.
  */
 async function handleChatSubmit(e: Event) {
@@ -186,29 +243,33 @@ async function handleChatSubmit(e: Event) {
   const userMessage = chatInput.value.trim();
   addUserMessage(userMessage);
   chatInput.value = "";
-  if(sendBtn) sendBtn.disabled = true;
+  sendBtn.disabled = true;
+  micBtn.disabled = true;
 
   // Contact form orchestration logic
-  // Refined keywords to be more specific and avoid accidental triggers.
-  const contactKeywords = ['contact form', 'send email', 'send me a message', 'get in touch'];
+  const contactKeywords = ['contact form', 'send email', 'message me', 'get in touch'];
   if (contactKeywords.some(keyword => userMessage.toLowerCase().includes(keyword))) {
     displayContactForm();
-    if(sendBtn) sendBtn.disabled = false; // Re-enable button since we are not submitting
+    sendBtn.disabled = false;
+    micBtn.disabled = false;
     return;
   }
 
-  // Fallback to conversational chat (now using the worker)
-  const loadingMessage = addMessage("Thinking...", "loading");
+  // Fallback to conversational chat
+  const loadingMessage = addMessage("", "loading");
   try {
     const botResponseText = await sendPrompt(userMessage);
+    // The response might contain an error message, but we display it the same way
     addBotMessage(botResponseText);
   } catch (error) {
-    console.error("Chatbot error:", error);
-    addBotMessage("Oops! I seem to be having a little trouble. Please try again in a moment.");
+    // This catch block might be redundant if sendPrompt always returns a string,
+    // but it's good for catching unexpected failures.
+    console.error("Chatbot submission error:", error);
+    addBotMessage("Oops! I'm having trouble connecting. Please try again in a moment.");
   } finally {
-    // Always re-enable the send button and remove the loading indicator
-    if(sendBtn) sendBtn.disabled = false;
     loadingMessage.remove();
+    sendBtn.disabled = false;
+    micBtn.disabled = false;
   }
 }
 
@@ -218,8 +279,9 @@ async function handleChatSubmit(e: Event) {
  * @param {'light' | 'dark'} theme - The theme to set.
  */
 function setTheme(theme: 'light' | 'dark') {
+// ... (setTheme function remains the same)
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
+    sessionStorage.setItem('theme', theme);
     if (themeToggleBtn) {
         themeToggleBtn.innerHTML = theme === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
         themeToggleBtn.setAttribute('aria-label', `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`);
@@ -230,6 +292,7 @@ function setTheme(theme: 'light' | 'dark') {
  * Handles the click event for the theme toggle button.
  */
 function handleThemeToggle() {
+// ... (handleThemeToggle function remains the same)
     const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     setTheme(newTheme as 'light' | 'dark');
@@ -239,6 +302,7 @@ function handleThemeToggle() {
 
 // Toggles the chat window's visibility when the FAB is clicked.
 fab?.addEventListener("click", () => {
+// ... (event listener remains the same)
   const isVisible = chatWindow?.classList.toggle("visible");
   (chatWindow as HTMLElement).inert = !isVisible;
   fab.setAttribute('aria-label', isVisible ? 'Close chat' : 'Open chat');
@@ -249,6 +313,7 @@ fab?.addEventListener("click", () => {
 
 // Hides the chat window when the close button is clicked.
 closeBtn?.addEventListener("click", () => {
+// ... (event listener remains the same)
   chatWindow?.classList.remove("visible");
   (chatWindow as HTMLElement).inert = true;
   fab?.setAttribute('aria-label', 'Open chat');
@@ -259,6 +324,7 @@ chatForm?.addEventListener("submit", handleChatSubmit);
 
 // Enables or disables the send button based on whether the input has text.
 chatInput?.addEventListener('input', () => {
+// ... (event listener remains the same)
     if(sendBtn && chatInput) {
         sendBtn.disabled = chatInput.value.trim() === '';
     }
@@ -266,6 +332,7 @@ chatInput?.addEventListener('input', () => {
 
 // Starts or stops voice recognition when the mic button is clicked.
 micBtn?.addEventListener('click', () => {
+// ... (event listener remains the same)
     console.log('Voice recognition not implemented yet.');
 });
 
@@ -274,8 +341,17 @@ themeToggleBtn?.addEventListener('click', handleThemeToggle);
 
 // --- Initialization ---
 
-// When the DOM is fully loaded, render the project cards.
+// When the DOM is fully loaded, render projects and load chat history.
 document.addEventListener("DOMContentLoaded", async () => {
   await renderProjects();
-  // No AI initialization here, as it's handled by the worker
+  loadChatHistory();
+  // Set initial theme based on saved preference or system setting
+  const savedTheme = sessionStorage.getItem('theme') as 'light' | 'dark' | null;
+  if (savedTheme) {
+      setTheme(savedTheme);
+  }
+  else {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setTheme(prefersDark ? 'dark' : 'light');
+  }
 });

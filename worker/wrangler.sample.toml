@@ -1,0 +1,17 @@
+name = "ai-powered-static-portfolio-worker"
+main = "src/index.ts"
+compatibility_date = "2025-09-24"
+
+# Replace these via CI secrets or environment interpolation
+account_id = "${CF_ACCOUNT_ID}"
+
+kv_namespaces = [
+  { binding = "RATE_LIMIT_KV", id = "${RATE_LIMIT_KV_ID}" }
+]
+
+[build]
+command = "npm ci && npm run build"
+
+[vars]
+# Example runtime variables that the worker reads from env/secrets
+# FRONTEND_URL = "https://<your-user>.github.io/<repo>"

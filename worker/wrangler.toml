@@ -1,3 +1,12 @@
 name = "ai-powered-static-portfolio-worker"
 main = "src/index.ts"
 compatibility_date = "2023-10-30"
+
+# KV namespace binding for rate limiting.
+# Important: You must create a KV namespace in your Cloudflare dashboard
+# and replace "REPLACE_WITH_KV_NAMESPACE_ID" with its actual ID.
+# Example:
+# npx wrangler kv:namespace create RATE_LIMIT_KV
+kv_namespaces = [
+	{ binding = "RATE_LIMIT_KV", id = "REPLACE_WITH_KV_NAMESPACE_ID" }
+]

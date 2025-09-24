@@ -36,7 +36,7 @@ describe('Chat Worker', () => {
     await waitOnExecutionContext(ctx);
 
     expect(response.status).toBe(200);
-    const data = await response.json();
+    const data: { response: string } = await response.json();
     expect(data.response).toBe('Mocked Gemini response');
   });
 
@@ -52,8 +52,7 @@ describe('Chat Worker', () => {
     await waitOnExecutionContext(ctx);
 
     expect(response.status).toBe(400);
-    const errorText = await response.text();
-    expect(errorText).toBe('Missing prompt in request body');
+    expect(await response.json()).toEqual({ error: 'Missing prompt in request body' });
   });
 
   it('should return 405 for non-POST requests to /chat', async () => {
@@ -66,8 +65,7 @@ describe('Chat Worker', () => {
     await waitOnExecutionContext(ctx);
 
     expect(response.status).toBe(405);
-    const errorText = await response.text();
-    expect(errorText).toBe('Expected POST request');
+    expect(await response.json()).toEqual({ error: 'Method Not Allowed' });
   });
 
   it('should return 404 for unknown paths', async () => {
@@ -80,7 +78,6 @@ describe('Chat Worker', () => {
     await waitOnExecutionContext(ctx);
 
     expect(response.status).toBe(404);
-    const errorText = await response.text();
-    expect(errorText).toBe('Not Found');
+    expect(await response.json()).toEqual({ error: 'Not Found' });
   });
 });
