@@ -8,39 +8,39 @@ The diagram below is an inline Mermaid flowchart so GitHub renders it natively. 
 
 ```mermaid
 flowchart LR
-    %% Nodes
-    subgraph Browser [Browser — Vite SPA]
-        A[Vite SPA — Client-side SPA]
-    end
+  %% Nodes
+  subgraph Browser [Browser - Vite]
+    A[Vite SPA]
+  end
 
-    subgraph Cloudflare [Cloudflare]
-        B[Worker — API Proxy & Auth]
-        C[KV — RATE_LIMIT_KV (optional)]
-    end
+  subgraph Cloudflare [Cloudflare]
+    B[Worker]
+    C[KV RATE_LIMIT_KV]
+  end
 
-    subgraph GoogleCloud [Google Cloud]
-        D[Gemini API — Generative Models]
-    end
+  subgraph GoogleCloud [Google Cloud]
+    D[Gemini API]
+  end
 
-    %% Connections
-    A -->|POST /chat| B
-    B -->|Enforce rate limits & auth| C
-    B -->|generateContent / embeddings| D
-    D -->|{ response }| B
-    B -->|JSON response| A
+  %% Connections
+  A -->|POST /chat| B
+  B -->|Enforce rate limits & auth| C
+  B -->|generateContent / embeddings| D
+  D -->|response| B
+  B -->|JSON response| A
 
-    %% Styling
-    classDef browser fill:#E8F6FF;stroke:#1E90FF;stroke-width:1.5px;color:#03396c;
-    classDef cloud fill:#E8FFF2;stroke:#05A678;stroke-width:1.5px;color:#064a33;
-    classDef kv fill:#FFF8E8;stroke:#FF9F1C;stroke-width:1px;color:#7a4a00;
-    classDef google fill:#FFF4E6;stroke:#FF8C42;stroke-width:1.5px;color:#663300;
+  %% Styling
+  classDef browser fill:#E8F6FF;stroke:#1E90FF;stroke-width:1.5px;color:#03396c;
+  classDef cloud fill:#E8FFF2;stroke:#05A678;stroke-width:1.5px;color:#064a33;
+  classDef kv fill:#FFF8E8;stroke:#FF9F1C;stroke-width:1px;color:#7a4a00;
+  classDef google fill:#FFF4E6;stroke:#FF8C42;stroke-width:1.5px;color:#663300;
 
-    class A browser;
-    class B cloud;
-    class C kv;
-    class D google;
+  class A browser;
+  class B cloud;
+  class C kv;
+  class D google;
 
-    linkStyle default stroke:#9aaed8;stroke-width:1px;
+  linkStyle default stroke:#9aaed8;stroke-width:1px;
 ```
 
 If you prefer a static image, the repository also includes `Architecturemd.svg` (kept for compatibility with tools that don't render Mermaid).
