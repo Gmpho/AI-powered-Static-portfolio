@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test:e2e": "npx playwright test"
+    "test:e2e": "npx playwright test",
+    "deploy": "wrangler deploy worker/src/index.ts"
   },
   "dependencies": {
     "@google/genai": "latest"
@@ -17,7 +18,7 @@
     "@types/node": "latest",
     "typescript": "latest",
     "vite": "latest",
-    "wrangler": "^4.38.0"
+    "wrangler": "^4.40.1"
   },
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "latest"
