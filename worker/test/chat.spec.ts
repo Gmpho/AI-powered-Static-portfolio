@@ -52,7 +52,7 @@ describe('Chat Worker', () => {
     await waitOnExecutionContext(ctx);
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: 'Missing prompt in request body' });
+    expect(await response.json()).toEqual({ error: 'Invalid prompt in request body' });
   });
 
   it('should return 405 for non-POST requests to /chat', async () => {

@@ -38,6 +38,34 @@ export default {
             return new Response(null, { headers: corsHeaders });
         }
 
+        const url = new URL(request.url);
+
+        // Handle root path request with a friendly HTML response
+        if (url.pathname === '/') {
+            const htmlResponse = `
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>API Status</title>
+                    <style>
+                        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f2f5; }\n                        .container { text-align: center; padding: 2rem; background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }\n                        h1 { color: #1c1e21; }\n                        p { color: #606770; }\n                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>✅ API Worker is Running</h1>
+                        <p>This is the backend API for the AI Portfolio. It only responds to POST requests at the /chat endpoint.</p>
+                    </div>
+                </body>
+                </html>
+            `;
+            return new Response(htmlResponse, {
+                status: 200,
+                headers: { 'Content-Type': 'text/html', ...corsHeaders },
+            });
+        }
+
         // Apply server-side rate-limiting
         const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
         const rateLimitResult = await checkRateLimit(clientIp, env);
@@ -50,7 +78,6 @@ export default {
             );
         }
 
-        const url = new URL(request.url);
         if (url.pathname !== '/chat') {
             return jsonResponse({ error: 'Not Found' }, 404, corsHeaders);
         }
@@ -71,13 +98,13 @@ export default {
 
             const systemPrompt = PERSONAS[personaKey] ?? PERSONAS['default'];
 
-            if (!prompt) {
-                return jsonResponse({ error: 'Missing prompt in request body' }, 400, corsHeaders);
+            if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
+                return jsonResponse({ error: 'Invalid prompt in request body' }, 400, corsHeaders);
             }
 
             // Use the Google Generative AI SDK
             const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
-            const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+            const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
             // Combine the trusted system prompt with the user prompt into a single input string
             const combinedPrompt = `${systemPrompt}\n\nUser: ${prompt}`;
@@ -90,7 +117,7 @@ export default {
 
         } catch (error) {
             console.error('Error processing chat request:', error);
-            return jsonResponse({ error: 'Internal Server Error' }, 500, corsHeaders);
+            return jsonResponse({ error: 'Sorry, I’m having trouble answering that right now.' }, 503, corsHeaders);
         }
     },
 } satisfies ExportedHandler<Env>;
