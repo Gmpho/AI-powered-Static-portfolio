@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test:e2e": "npx playwright test",
-    "deploy": "wrangler deploy worker/src/index.ts"
+    "deploy": "npm install --prefix worker && wrangler deploy worker/src/index.ts"
   },
   "dependencies": {
     "@google/genai": "latest"
