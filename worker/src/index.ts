@@ -113,6 +113,7 @@ export default {
 
 		if (!env.GEMINI_API_KEY) {
 			console.error('GEMINI_API_KEY is not set.');
+
 			return jsonResponse({ error: 'Missing server configuration' }, 500, corsHeaders);
 		}
 
