@@ -44,7 +44,7 @@ Traditional portfolios are static and passive. This project transforms the conve
 This project is built with a selection of modern and efficient technologies, chosen for their performance, flexibility, and developer experience.
 
 -   **Frontend**: TypeScript, HTML5, CSS3 (No framework, uses JavaScript template literals for HTML templating)
--   **AI Layer**: Cloudflare Workers (secure API proxy, rate limiting, embedding generation, calling Google Gemini API directly), Google Gemini API
+-   **AI Layer**: Cloudflare Workers (secure API proxy, rate limiting, embedding generation, calling Google Gemini API directly), Google Gemini API (using `gemini-2.5-flash` model)
 -   **Testing**: Playwright (for End-to-End testing), Vitest (for Worker unit testing)
 -   **Speech Recognition**: Web Speech API
 
@@ -136,7 +136,7 @@ To ensure the reliability and quality of the application, a comprehensive testin
     *   All E2E tests are currently passing (with one test for semantic search intentionally skipped as the feature is under development).
 *   **Worker Unit Testing with Vitest:**
     *   Ensures the individual components and logic of the Cloudflare Worker function correctly.
-    *   All worker unit tests are currently passing.
+    *   All worker unit tests are currently passing. A critical bug related to the Gemini model was recently identified and fixed, and all tests continue to pass after the resolution, ensuring the chatbot's stability.
 
 ## 🚀 Quick Start
 
@@ -178,7 +178,7 @@ To ensure the reliability and quality of the application, a comprehensive testin
      npx wrangler dev worker/src/index.ts
      ```
 
-For detailed troubleshooting, refer to the [Debugging and Troubleshooting](GEMINI.md#debugging-and-troubleshooting) section in `GEMINI.md`.
+For detailed troubleshooting, refer to the [Debugging and Troubleshooting](GEMINI.md#debugging-and-troubleshooting) section in `GEMINI.md` and the [Known Issues](docs/KNOWN_ISSUES.md) document for specific resolutions.
 
 ## 🐳 Docker
 
