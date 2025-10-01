@@ -22,6 +22,19 @@ const jsonResponse = (data: object, status: number, headers: HeadersInit = {}) =
     });
 };
 
+async function validateGeminiKey(apiKey: string): Promise<boolean> {
+    try {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }, { apiVersion: 'v1' });
+        // A simple, low-cost prompt to validate the key
+        await model.generateContent("ping");
+        return true;
+    } catch (error) {
+        console.error("Gemini API key validation failed:", error);
+        return false;
+    }
+}
+
 export default {
     async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
         const origin = request.headers.get('Origin') || '';
@@ -30,7 +43,7 @@ export default {
         const corsHeaders: HeadersInit = {};
         if (allowedOrigins.includes(origin)) {
             corsHeaders['Access-Control-Allow-Origin'] = origin;
-            corsHeaders['Access-Control-Allow-Methods'] = 'POST, OPTIONS';
+            corsHeaders['Access-Control-Allow-Methods'] = 'POST, GET, OPTIONS';
             corsHeaders['Access-Control-Allow-Headers'] = 'Content-Type';
         }
 
@@ -40,7 +53,6 @@ export default {
 
         const url = new URL(request.url);
 
-        // Handle root path request with a friendly HTML response
         if (url.pathname === '/') {
             const htmlResponse = `
                 <!DOCTYPE html>
@@ -64,6 +76,16 @@ export default {
                 status: 200,
                 headers: { 'Content-Type': 'text/html', ...corsHeaders },
             });
+        }
+
+        if (url.pathname === '/health') {
+            const geminiKeyValid = await validateGeminiKey(env.GEMINI_API_KEY);
+            const kvStatus = env.RATE_LIMIT_KV ? 'connected' : 'disconnected';
+            return jsonResponse({
+                status: 'ok',
+                geminiKey: geminiKeyValid ? 'valid' : 'invalid',
+                kvStatus: kvStatus,
+            }, 200, corsHeaders);
         }
 
         // Apply server-side rate-limiting
@@ -104,7 +126,7 @@ export default {
 
             // Use the Google Generative AI SDK
             const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
-            const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+            const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }, { apiVersion: 'v1' });
 
             // Combine the trusted system prompt with the user prompt into a single input string
             const combinedPrompt = `${systemPrompt}\n\nUser: ${prompt}`;
