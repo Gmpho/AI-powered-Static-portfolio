@@ -182,6 +182,16 @@ If you run `npx wrangler dev` from the wrong directory and see a `Missing entry-
     name = "ai-powered-static-portfolio-worker"
     main = "src/index.ts"
     compatibility_date = "2023-10-30"
+    workers_dev = true
+
+    # KV Namespace for rate limiting
+    kv_namespaces = [
+      { binding = "RATE_LIMIT_KV", id = "YOUR_KV_NAMESPACE_ID" }
+    ]
+
+    # CORS configuration
+    [vars]
+    ALLOWED_ORIGINS = "https://your-github-pages-url,http://localhost:5173,http://127.0.0.1:5173"
     ```
 
 2.  Run the worker from the **root directory** of the project, specifying the path to the worker script:
@@ -205,6 +215,30 @@ If you encounter CORS errors (e.g., "Access to fetch... has been blocked by CORS
 **Solution:**
 
 This is typically due to an an incorrect value for the `ALLOWED_ORIGINS` secret in your Cloudflare Worker's production environment variables. Ensure the value is set to the exact origin of your GitHub Pages site (e.g., `https://gmpho.github.io`). The browser's CORS policy only considers the scheme and hostname, not the path.
+
+## Chatbot Returns 'Invalid Gemini API Key' or 'Sorry, I’m having trouble answering that right now' Error
+
+If the chatbot returns an error like `{"error":"Sorry, I’m having trouble answering that right now."}` or your health check shows `"geminiKey":"invalid"`, it means there is an issue with your `GEMINI_API_KEY`.
+
+**Solution:**
+
+1.  **Diagnose with the `/health` endpoint:**
+    Visit `https://<YOUR_WORKER_URL>/health` in your browser. If the response shows `"geminiKey":"invalid"`, your API key is not configured correctly.
+
+2.  **Set the `GEMINI_API_KEY` Secret:**
+    -   Go to your [Cloudflare dashboard](https://dash.cloudflare.com) and select **Workers & Pages**.
+    -   Click on your worker, `ai-powered-static-portfolio-worker`.
+    -   Go to **Settings** > **Variables**.
+    -   Under **Environment Variables**, click **Add variable**.
+    -   Enter `GEMINI_API_KEY` as the **Variable name**.
+    -   Paste your Gemini API key in the **Value** field.
+    -   **Important:** Click the **Encrypt** button to save the key as a secret.
+
+3.  **Redeploy the worker:**
+    After setting the secret, you must redeploy your worker for the changes to take effect.
+    ```bash
+    npx wrangler deploy worker/src/index.ts
+    ```
 
 ## Test Failures
 

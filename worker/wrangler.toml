@@ -1,10 +1,13 @@
 name = "ai-powered-static-portfolio-worker"
 main = "src/index.ts"
 compatibility_date = "2023-10-30"
+workers_dev = true
 
-[env.production]
-# KV namespace binding for rate limiting.
-# This binding is only applied in the production environment.
+# KV Namespace for rate limiting
 kv_namespaces = [
-	{ binding = "RATE_LIMIT_KV", id = "a8df9375b0264c84ba1dc55fb6a2ed39" }
+  { binding = "RATE_LIMIT_KV", id = "a8df9375b0264c84ba1dc55fb6a2ed39" }
 ]
+
+# CORS configuration
+[vars]
+ALLOWED_ORIGINS = "https://gmpho.github.io,http://localhost:5173,http://127.0.0.1:5173"
