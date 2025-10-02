@@ -57,7 +57,7 @@ graph TD
 
 ### 💾 Data Layer
 
-*   **Project Data:** Project information is currently hardcoded as a constant within the `index.tsx` file.
+*   **Project Data:** Project information is stored in a dedicated `frontend/projects.ts` file, separating it from the UI logic.
 *   **Conversation History:** Stored in a JavaScript array in memory during the session and persisted to `localStorage`.
 *   **Vector Embeddings:** Project embeddings for semantic search are generated at runtime and stored in memory.
 
@@ -113,7 +113,7 @@ A CI/CD pipeline (e.g., with GitHub Actions) is recommended for automated buildi
 
 ## Recommended Testing Strategy
 
-While an end-to-end (E2E) testing framework like **Playwright** is recommended for validating the entire application workflow, it's important to note that the initial boilerplate tests for the worker have been removed as they did not align with the current application logic. New, relevant unit and integration tests for the `/chat` endpoint should be written to ensure the worker's functionality is thoroughly covered.
+While an end-to-end (E2E) testing framework like **Playwright** is used for validating the entire application workflow, the worker itself has a suite of unit and integration tests using **Vitest**. These tests cover the core functionality of the `/chat` endpoint, including rate limiting, API failure handling, and persona logic.
 
 # 🚀 Getting Started
 
@@ -164,7 +164,7 @@ The portfolio is automatically deployed to GitHub Pages whenever changes are pus
 *   **Styling:** CSS is used for styling.
 *   **Environment Variables:** Must be prefixed with `VITE_`.
 *   **AI Interaction:** Handled in `frontend/chatbot.ts` (via Cloudflare Worker).
-*   **Project Data:** Hardcoded in `index.tsx`.
+*   **Project Data:** Located in `frontend/projects.ts`.
 
 #  Debugging and Troubleshooting
 

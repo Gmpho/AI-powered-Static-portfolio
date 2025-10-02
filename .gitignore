@@ -71,3 +71,6 @@ plain.text issues
 debugg.issue3
 debuggissue2
 option.md
+
+# Test reports
+playwright-report/

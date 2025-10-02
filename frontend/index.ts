@@ -15,44 +15,13 @@ const themeToggleBtn = document.getElementById('theme-toggle');
 // --- Constants ---
 const CHAT_HISTORY_KEY = 'chatHistory';
 
-// --- Interfaces ---
-interface Project {
-  title: string;
-  description: string;
-  tags: string[];
-  url: string;
-}
+import { projects } from "./projects";
 
+// --- Interfaces ---
 interface ChatMessage {
     text: string;
     sender: 'user' | 'bot';
 }
-
-// --- Project Data (Hardcoded for now) ---
-const projects: Project[] = [
-// ... (project data remains the same)
-  {
-    title: "AI Resume Analyzer",
-    description:
-      "Upload a PDF resume and receive improvement suggestions based on common best practices.",
-    tags: ["TypeScript", "pdf.js", "regex"],
-    url: "https://github.com/example/resume-analyzer",
-  },
-  {
-    title: "AI-Powered Portfolio",
-    description:
-      "A portfolio website with a TypeScript-powered AI chatbot to answer questions about my work.",
-    tags: ["TypeScript", "Gemini API", "UI/UX"],
-    url: "https://github.com/example/ai-portfolio",
-  },
-  {
-    title: "E-commerce Platform",
-    description:
-      "A full-stack e-commerce site with features like product search, cart management, and secure payments.",
-    tags: ["React", "Node.js", "PostgreSQL", "Stripe"],
-    url: "https://github.com/example/ecommerce-platform",
-  },
-];
 
 /**
  * Renders project cards into the projects container.
