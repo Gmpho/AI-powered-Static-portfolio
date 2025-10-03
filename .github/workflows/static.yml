@@ -79,6 +79,9 @@ jobs:
           env:
             RATE_LIMIT_KV_ID: ${{ secrets.RATE_LIMIT_KV_ID }}
 
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
       - name: Validate Gemini API Key
         run: |
           WORKER_URL="https://ai-powered-static-portfolio-worker.gmpho.workers.dev" # Replace with your actual worker URL
