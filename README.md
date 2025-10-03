@@ -22,6 +22,7 @@ Traditional portfolios are static and passive. This project transforms the conve
 *   [🏗️ Architecture](#️-architecture)
 *   [🧪 Testing](#-testing)
 *   [📚 Documentation](#-documentation)
+*   [🔐 API Access Model & Security](#-api-access-model--security)
 *   [🚀 Quick Start](#-quick-start)
 *   [🐳 Docker](#-docker)
 *   [📸 Visual Demo](#-visual-demo)
@@ -44,7 +45,7 @@ Traditional portfolios are static and passive. This project transforms the conve
 This project is built with a selection of modern and efficient technologies, chosen for their performance, flexibility, and developer experience.
 
 -   **Frontend**: TypeScript, HTML5, CSS3 (No framework, uses JavaScript template literals for HTML templating)
--   **AI Layer**: Cloudflare Workers (secure API proxy, rate limiting, embedding generation, calling Google Gemini API directly), Google Gemini API (using `gemini-2.5-flash` model)
+-   **AI Layer**: Cloudflare Workers (secure API proxy, rate limiting, guardrails, embedding generation, calling Google Gemini API directly), Google Gemini API (using `gemini-2.5-flash` model)
 -   **Testing**: Playwright (for End-to-End testing), Vitest (for Worker unit testing)
 -   **Speech Recognition**: Web Speech API
 
@@ -89,8 +90,8 @@ flowchart LR
 
 The Cloudflare Worker acts as a secure proxy and backend for AI-related functionalities, exposing the following key endpoints:
 
-*   `/chat`: Handles conversational requests, forwarding them to the Gemini API and applying rate limiting.
-*   `/embed`: Generates vector embeddings for text, also protected by rate limiting. This endpoint is designed for internal use by the application (e.g., for semantic search) and not for direct client access.
+*   `/chat`: Handles conversational requests, forwarding them to the Gemini API, applying rate limiting, and enforcing guardrails to prevent sensitive content injection.
+*   `/embed`: Generates vector embeddings for text, also protected by rate limiting and guardrails. This endpoint is designed for internal use by the application (e.g., for semantic search) and not for direct client access.
 
 
 ## Layers
@@ -132,7 +133,7 @@ To ensure the reliability and quality of the application, a comprehensive testin
 
 *   **End-to-End (E2E) Testing with Playwright:**
     *   Simulates real user interactions in a browser to validate the entire application workflow, including UI, application logic, and API integrations.
-    *   Covers key scenarios like general conversation and contact form submission.
+    *   Covers key scenarios like general conversation, contact form submission, **rate limiting, and guardrail enforcement.**
     *   All E2E tests are currently passing (with one test for semantic search intentionally skipped as the feature is under development).
     *   **To run E2E tests:**
         ```bash

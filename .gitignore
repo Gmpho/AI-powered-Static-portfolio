@@ -54,6 +54,7 @@ worker/.env.local
 *.pem
 *.key
 *.crt
+GEMINI_SYSTEM_PROMPT.md
 
 .gemini/
 gha-creds-*.json

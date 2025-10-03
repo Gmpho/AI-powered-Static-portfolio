@@ -40,3 +40,11 @@ A foundational test suite should cover the application's main features:
 *   **📚 Conversation History:**
     *   **Trigger:** A test that involves multiple message exchanges.
     *   **Expected Result:** The test asserts that the bot's later responses are contextually aware of the earlier messages in the conversation.
+
+*   **🔒 Rate Limiting:**
+    *   **Trigger:** Rapidly send more requests than the defined rate limit to the chatbot.
+    *   **Expected Result:** The application should display a `429 Too Many Requests` error or a user-friendly message indicating rate limiting, and subsequent requests should be blocked until the `Retry-After` period expires.
+
+*   **🛡️ Guardrails (Sensitive Content Blocking):**
+    *   **Trigger:** Send a message containing known sensitive patterns (e.g., `curl`, `api_key=`, `-----BEGIN`).
+    *   **Expected Result:** The application should display an error message indicating that sensitive content was detected and the request was blocked, without processing the message further.

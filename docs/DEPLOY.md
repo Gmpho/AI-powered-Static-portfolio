@@ -22,14 +22,14 @@ Add the following repository secrets (Settings → Secrets → Actions):
 
 Do not commit secrets or production keys to the repository.
 
-**1) Create Cloudflare KV namespace (one-time)**
+1) Create Cloudflare KV namespace for Rate Limiting (one-time)
 Run locally (PowerShell / pwsh):
 
 ```pwsh
 npx wrangler kv:namespace create "RATE_LIMIT_KV"
 ```
 
-Copy the `id` from the command output and save it to your secure secrets store (or GitHub secret `RATE_LIMIT_KV_ID`).
+Copy the `id` from the command output and save it to your secure secrets store (or GitHub secret `RATE_LIMIT_KV_ID`). This KV namespace will be used by the Worker for distributed rate limiting.
 
 
 % DEPLOYMENT GUIDE (synchronized with GEMINI.md)
@@ -103,7 +103,7 @@ jobs:
           path: frontend/dist
 
   deploy-frontend:
-    needs: build-and-deploy-frontend
+    needs: build-and-and-deploy-frontend
     runs-on: ubuntu-latest
     permissions:
       pages: write
@@ -180,6 +180,8 @@ In GitHub Actions you can:
 - Use `wrangler secret put` by running a step with `wrangler` and the secrets injected from GitHub Actions secrets.
 - Or use the `wrangler-action` `apiToken` to publish and then set secrets via Cloudflare UI.
 
+*Note: Guardrails are implemented directly in the Worker code (`worker/src/guardrails.ts`) and do not require separate secret management.*
+
 **6) CORS and Allowed Origins**
 - Restrict allowed origins in the Worker to the Pages domain (e.g. `https://<user>.github.io`) and the Vite dev URL (`http://localhost:5173`) for development.
 - Worker should validate the `Origin` header and respond with `403` for unexpected origins.
@@ -189,7 +191,8 @@ In GitHub Actions you can:
 - Use least-privilege for `CF_API_TOKEN`.
 - Validate `Origin` header in the Worker.
 - Sanitize or escape any content rendered with `innerHTML`.
-- Configure rate limiting (KV-backed) conservatively for production.
+- Implement robust rate limiting (consider KV-backed for production) to prevent abuse.
+- Implement guardrails to detect and block sensitive or malicious content.
 - Monitor Cloudflare and Gemini usage to avoid cost surprises.
 - Rotate API keys and tokens periodically.
 
@@ -204,7 +207,7 @@ Local dev:
 # in project root
 npm install
 npm install --prefix worker
-# run worker (local KV)
+# run worker (local KV for rate limiting and guardrails active)
 npx wrangler dev worker/src/index.ts --local
 # run frontend
 npm --prefix frontend run dev

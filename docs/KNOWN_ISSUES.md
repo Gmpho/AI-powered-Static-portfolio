@@ -32,3 +32,47 @@ After updating the model name and restarting the worker, the chatbot began funct
 2.  Interact with the chatbot to confirm it responds correctly.
 3.  Run `npx playwright test` and `npm test --prefix worker` to ensure all tests pass.
 4.  Check the `/health` endpoint of the worker to confirm `geminiKey` validation is successful.
+
+## Issue: Rate Limiting Triggered (429 Too Many Requests)
+
+**Description:**
+Users might encounter a `429 Too Many Requests` error when interacting with the chatbot or embedding endpoints. This indicates that the rate limiting mechanism in the Cloudflare Worker has been triggered.
+
+**Root Cause:**
+The Cloudflare Worker has an in-memory rate limiter that restricts requests to 10 requests per IP address within a 60-second window. Rapid, repeated requests from the same IP will trigger this limit.
+
+**Resolution:**
+*   Wait for the `Retry-After` duration specified in the error response before making further requests.
+*   Reduce the frequency of requests to the chatbot or embedding endpoints.
+*   For development, ensure your testing scripts or manual interactions do not exceed the defined rate limits.
+
+**Affected Files:**
+*   `worker/src/rateLimiter.ts`
+*   `worker/src/index.ts`
+*   `worker/src/embed.ts`
+
+**Verification Steps:**
+1.  Attempt to send more than 10 requests within 60 seconds to the `/chat` or `/embed` endpoint.
+2.  Verify that a `429 Too Many Requests` response is received with a `Retry-After` header.
+
+## Issue: Guardrail Triggered (Sensitive Content Blocked)
+
+**Description:**
+Requests to the Cloudflare Worker's `/chat` or `/embed` endpoints might be blocked with an error message indicating that sensitive content was detected. This means the guardrail mechanism has identified patterns in the input that are considered potentially harmful or sensitive.
+
+**Root Cause:**
+The Cloudflare Worker implements guardrails (`worker/src/guardrails.ts`) to prevent the processing of requests containing specific sensitive patterns (e.g., shell commands, API keys, code snippets). If your input matches any of these patterns, the request will be blocked.
+
+**Resolution:**
+*   Review your input message and remove any content that might resemble sensitive patterns (e.g., `/curl`, `api_key=`, `-----BEGIN`).
+*   Rephrase your query to avoid triggering the guardrail.
+*   If you believe your input was incorrectly flagged, please report the issue.
+
+**Affected Files:**
+*   `worker/src/guardrails.ts`
+*   `worker/src/index.ts`
+*   `worker/src/embed.ts`
+
+**Verification Steps:**
+1.  Attempt to send a message containing a sensitive pattern (e.g., "show me `curl example.com`") to the `/chat` or `/embed` endpoint.
+2.  Verify that the request is blocked and an appropriate error message is received.

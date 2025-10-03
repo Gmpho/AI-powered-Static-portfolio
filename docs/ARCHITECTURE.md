@@ -16,6 +16,7 @@ flowchart LR
   subgraph Cloudflare [Cloudflare]
     B[Worker]
     C[KV RATE_LIMIT_KV]
+    G[Guardrails]
   end
 
   subgraph GoogleCloud [Google Cloud]
@@ -24,7 +25,9 @@ flowchart LR
 
   %% Connections
   A -->|POST /chat| B
-  B -->|Enforce rate limits & auth| C
+  B -->|Enforce Rate Limits| C
+  B -->|Apply Guardrails| G
+  G -->|If safe, proceed| B
   B -->|generateContent / embeddings| D
   D -->|response| B
   B -->|JSON response| A
@@ -34,11 +37,13 @@ flowchart LR
   classDef cloud fill:#E8FFF2;stroke:#05A678;stroke-width:1.5px;color:#064a33;
   classDef kv fill:#FFF8E8;stroke:#FF9F1C;stroke-width:1px;color:#7a4a00;
   classDef google fill:#FFF4E6;stroke:#FF8C42;stroke-width:1.5px;color:#663300;
+  classDef guardrails fill:#FFDDC1;stroke:#FF9933;stroke-width:1.5px;color:#8B4513;
 
   class A browser;
   class B cloud;
   class C kv;
   class D google;
+  class G guardrails;
 
   linkStyle default stroke:#9aaed8;stroke-width:1px;
 ```
@@ -75,5 +80,7 @@ If you prefer a static image, the repository also includes `Architecturemd.svg` 
 - **Responsibilities:**
     - **Docker:** The application includes a multi-stage `Dockerfile` for containerization. This creates a production-ready image by building the static assets and serving them from a lightweight Nginx container. This ensures a small, secure, and efficient deployment.
     - **GitHub Pages:** The application is configured for automated deployment to GitHub Pages via GitHub Actions.
-    - **Cloudflare Workers:** The AI backend, responsible for securely interacting with the Gemini API, is deployed as a Cloudflare Worker.
+    - **Cloudflare Workers:** The AI backend, responsible for securely interacting with the Gemini API, is deployed as a Cloudflare Worker. It includes:
+        - **Rate Limiting:** An in-memory mechanism to prevent API abuse by limiting requests from a single IP address.
+        - **Guardrails:** Logic to block requests containing sensitive patterns, enhancing security and preventing injection attacks.
 

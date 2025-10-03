@@ -1,3 +1,5 @@
+SECURITY NOTE — SYSTEM PROMPT: The system prompt and any model secrets must live only in Cloudflare Worker secrets. They must never be embedded in client code, committed to the repo, or included in PR descriptions.
+
 # 🚀 AI-Powered Portfolio: Project Overview
 
 This is a client-side-only, AI-powered portfolio website. It features a conversational AI chatbot, built with the Google Gemini API, that can answer questions about the projects showcased on the site. The application is built without a major frontend framework, using TypeScript and JSX for templating, and Vite for the build process.
@@ -26,7 +28,16 @@ This is a client-side-only, AI-powered portfolio website. It features a conversa
 
 # 🏗️ Architecture
 
-The application is a **client-side, single-page application (SPA)** that interacts directly with the Google Gemini API from the user's browser.
+The frontend never calls Gemini directly. All AI calls must go through the Cloudflare Worker (Browser → Worker → Gemini) so API keys and the system persona stay server-side.
+
+```mermaid
+graph TD
+    A[User] --> B{Browser (SPA)};
+    B --> C[Static HTML/CSS/JS];
+    B --> D{Cloudflare Worker};
+    D --> F{Gemini API};
+    B --> E[localStorage];
+```
 
 ## Diagram
 
@@ -61,6 +72,8 @@ graph TD
 *   **Conversation History:** Stored in a JavaScript array in memory during the session and persisted to `localStorage`.
 *   **Vector Embeddings:** Project embeddings for semantic search are generated at runtime and stored in memory.
 
+Resume pipeline: Store resume PDFs in Cloudflare R2. The Worker must extract text server-side, generate a short KV summary for instant display, and create chunked embeddings for semantic retrieval. The frontend receives only the safe summary and a signed download link for the full PDF.
+
 ### ☁️ Infrastructure & Deployment
 
 *   **Technologies:** Docker, Nginx, GitHub Pages, Cloudflare Workers.
@@ -71,6 +84,8 @@ graph TD
 `Frontend Browser -> Cloudflare Worker -> Google Gemini API`
 
 > **✅ Enhanced Security:** The `GEMINI_API_KEY` and `ALLOWED_ORIGINS` are securely stored as **Cloudflare Worker secrets**, preventing their exposure. The `VITE_WORKER_URL` for the frontend is stored as a **GitHub repository secret**. This robust approach is suitable for production environments.
+
+*   **Injection Detection (Guardrails):** The Worker employs guardrails (`worker/src/guardrails.ts`) to block requests containing sensitive patterns (e.g., `/curl|wget|base64|sk-|api_key=|-----BEGIN/i`) and returns a polite error message, preventing potential code injection or secret exposure.
 
 # 🤖 The AI Assistant: "AG Gift."
 
@@ -102,6 +117,8 @@ The application simulates a "tool-based" architecture within the frontend code.
 ## Path to a True Agent
 
 The current implementation is not a true agent. To evolve this project into a true agent architecture, the orchestration logic would need to be shifted from the client-side code to the LLM itself.
+
+Memory & Learning: Use session-level memory for short context (in-memory/Durable), and a vetted long-term memory stored as embeddings in a vector DB. New memories must pass human review before being promoted to long-term store.
 
 ## Future Architecture: Model Control Plane (MCP)
 

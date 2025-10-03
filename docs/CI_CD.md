@@ -13,7 +13,7 @@ This project uses GitHub Actions to build and publish the static frontend (GitHu
 - `GITHUB_TOKEN` (provided by Actions) — used for artifact operations
 - `CF_API_TOKEN` — Cloudflare API token with `Workers:Edit` and `Account:Read` (store safely)
 - `CF_ACCOUNT_ID` — your Cloudflare account id
-- `RATE_LIMIT_KV_ID` — optional KV namespace id used by the worker
+- `RATE_LIMIT_KV_ID` — KV namespace ID used by the worker for rate limiting (optional: use wrangler envs instead)
 - `GEMINI_API_KEY` — (if you deploy worker in CI, otherwise keep in environment)
 - `ALLOWED_ORIGINS` — comma-separated list of allowed origins for CORS (optional)
 
@@ -23,7 +23,8 @@ This project uses GitHub Actions to build and publish the static frontend (GitHu
 2. Set up Node (LTS) and cache dependencies.
 3. Install and build the frontend (`frontend/`).
 4. Upload the `frontend/dist` artifact (or publish directly to Pages).
-5. Install worker dependencies (`worker/`) and run `wrangler publish` (or `wrangler deploy`).
+5. Install worker dependencies (`worker/`).
+6. Deploy Cloudflare Worker, ensuring rate limiting and guardrails are active.
 
 ## Minimal GitHub Actions snippet
 
@@ -84,5 +85,6 @@ Notes:
 
 - To rollback, re-run a previous workflow or push a release tag pointing to a known-good commit.
 - Add workflow_dispatch to allow manual redeploys from the Actions UI.
+- **Post-deployment Verification:** Always verify the worker's rate limiting and guardrail functionalities after deployment to ensure security measures are active and functioning as expected.
 
 If you want, I can also add a full, ready-to-use `.github/workflows/deploy.yml` in the repo that matches your existing configuration and secrets. Would you like me to commit that as well?

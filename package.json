@@ -11,14 +11,15 @@
     "deploy": "npm install --prefix worker && wrangler deploy worker/src/index.ts"
   },
   "dependencies": {
-    "@google/genai": "latest"
+
+    "@sentry/browser": "^10.17.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.1",
     "@types/node": "latest",
     "typescript": "latest",
     "vite": "latest",
-    "wrangler": "^4.41.0"
+    "wrangler": "^4.42.0"
   },
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "latest"
