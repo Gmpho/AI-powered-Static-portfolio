@@ -76,3 +76,16 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: 'deploy worker/src/index.ts'
+          env:
+            RATE_LIMIT_KV_ID: ${{ secrets.RATE_LIMIT_KV_ID }}
+
+      - name: Validate Gemini API Key
+        run: |
+          WORKER_URL="https://ai-powered-static-portfolio-worker.gmpho.workers.dev" # Replace with your actual worker URL
+          HEALTH_STATUS=$(curl -s $WORKER_URL/health | jq -r '.geminiKey')
+          if [ "$HEALTH_STATUS" == "invalid" ]; then
+            echo "Error: Gemini API Key is invalid after deployment!"
+            exit 1
+          else
+            echo "Gemini API Key validated successfully."
+          fi
