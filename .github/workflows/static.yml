@@ -70,18 +70,16 @@ jobs:
           cache: 'npm'
       - name: Install worker dependencies
         run: npm install --prefix worker
+      - name: Install Wrangler
+        run: npm install -g wrangler
       - name: Deploy worker
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: 'deploy worker/src/index.ts'
-          env:
-            RATE_LIMIT_KV_ID: ${{ secrets.RATE_LIMIT_KV_ID }}
-
+        run: wrangler deploy worker/src/index.ts
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          RATE_LIMIT_KV_ID: ${{ secrets.RATE_LIMIT_KV_ID }}
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
-
       - name: Validate Gemini API Key
         run: |
           WORKER_URL="https://ai-powered-static-portfolio-worker.gmpho.workers.dev" # Replace with your actual worker URL
