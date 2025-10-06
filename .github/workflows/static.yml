@@ -45,7 +45,7 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          VITE_WORKER_URL: ${{ env.VITE_WORKER_URL }}
+          VITE_WORKER_URL: "${{ env.VITE_WORKER_URL }}"
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
@@ -74,11 +74,11 @@ jobs:
         working-directory: ./worker
       - name: Deploy worker
         uses: cloudflare/wrangler-action@v3 # Use wrangler-action for cleaner deployment
+        id: deploy_worker_step
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: "deploy worker/src/index.ts --json --verbose" # Deploy and output JSON for URL
-        id: deploy_worker_step
         env:
           RATE_LIMIT_KV_ID: ${{ secrets.RATE_LIMIT_KV_ID }}
       - name: Install jq
