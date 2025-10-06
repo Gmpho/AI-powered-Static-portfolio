@@ -42,7 +42,7 @@ jobs:
         run: npm run build
         working-directory: ./frontend
         env:
-          VITE_WORKER_URL: ${{ secrets.VITE_WORKER_URL }}
+          VITE_WORKER_URL: ${{ needs.deploy-worker.outputs.worker_url }}
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
@@ -56,7 +56,8 @@ jobs:
 
   deploy-worker:
     runs-on: ubuntu-latest
-    needs: deploy
+    outputs:
+      worker_url: ${{ steps.deploy_worker_step.outputs.url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
