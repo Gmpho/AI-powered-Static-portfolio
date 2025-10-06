@@ -3,5 +3,5 @@ main = "src/index.ts"
 compatibility_date = "2025-10-01"
 
 kv_namespaces = [
-  { binding = "RATE_LIMIT_KV", id = "test_kv_rate_limit" }
+  { binding = "RATE_LIMIT_KV", id = "868d5699ded349d9a26e432c7bdaa3ed" } # Using existing 'ai-portfolio-rate-limit' KV ID
 ]
