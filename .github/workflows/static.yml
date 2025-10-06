@@ -4,7 +4,7 @@ name: Deploy static content to Pages
 on:
   # Runs on pushes targeting the default branch
   push:
-    branches: ['main']
+    branches: ["main"]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -17,12 +17,12 @@ permissions:
 
 # Allow one concurrent deployment
 concurrency:
-  group: 'pages'
+  group: "pages"
   cancel-in-progress: true
 
 jobs:
   # Single deploy job since we're just deploying
-  deploy:
+  deploy: # Frontend deployment
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -30,20 +30,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-      - name: Clean build environment
-        run: |
-          rm -rf node_modules
-          rm -rf dist
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
-          cache: 'npm'
+          cache: "npm"
       - name: Install dependencies
         run: npm ci
+        working-directory: ./frontend
       - name: Build
         run: npm run build
-        working-directory: .
+        working-directory: ./frontend
         env:
           VITE_WORKER_URL: ${{ secrets.VITE_WORKER_URL }}
       - name: Setup Pages
@@ -52,7 +49,7 @@ jobs:
         uses: actions/upload-pages-artifact@v4
         with:
           # Upload dist folder
-          path: './frontend/dist'
+          path: "./frontend/dist"
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
@@ -67,23 +64,26 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
-          cache: 'npm'
+          cache: "npm"
       - name: Install worker dependencies
-        run: npm install --prefix worker
-      - name: Install Wrangler
-        run: npm install -g wrangler
+        run: npm ci
+        working-directory: ./worker
       - name: Deploy worker
-        run: wrangler deploy worker/src/index.ts
+        uses: cloudflare/wrangler-action@v3 # Use wrangler-action for cleaner deployment
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: "deploy worker/src/index.ts --json" # Deploy and output JSON for URL
+        id: deploy_worker_step
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           RATE_LIMIT_KV_ID: ${{ secrets.RATE_LIMIT_KV_ID }}
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
       - name: Validate Gemini API Key
         run: |
-          WORKER_URL="https://ai-powered-static-portfolio-worker.gmpho.workers.dev" # Replace with your actual worker URL
-          HEALTH_STATUS=$(curl -s $WORKER_URL/health | jq -r '.geminiKey')
+          WORKER_URL=$(echo "${{ steps.deploy_worker_step.outputs.json }}" | jq -r '.url')
+          echo "Deployed Worker URL: $WORKER_URL"
+          HEALTH_STATUS=$(curl -s "$WORKER_URL/health" | jq -r '.geminiKey')
           if [ "$HEALTH_STATUS" == "invalid" ]; then
             echo "Error: Gemini API Key is invalid after deployment!"
             exit 1

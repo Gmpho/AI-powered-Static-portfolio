@@ -12,22 +12,25 @@ The `worker/src/index.ts` file was configured to use the `gemini-pro` model for 
 
 **Resolution:**
 The model name in `worker/src/index.ts` was updated from `gemini-pro` to `gemini-2.5-flash` in two locations:
+
 1.  Within the main `fetch` handler for the chat functionality.
 2.  Within the `validateGeminiKey` function.
 
 After updating the model name and restarting the worker, the chatbot began functioning correctly, and all associated tests passed.
 
 **Affected Files:**
-*   `worker/src/index.ts`
-*   `option.md` (contained diagnostic logs)
-*   `GEMINI.md` (contained conflicting model information)
+
+- `worker/src/index.ts`
+- `GEMINI.md` (contained conflicting model information)
 
 **Steps to Reproduce (prior to fix):**
+
 1.  Ensure `worker/src/index.ts` is configured to use an unsupported or unavailable Gemini model (e.g., `gemini-pro` with a key that doesn't support it, or `gemini-1.5-flash` if not available).
 2.  Start the frontend and worker development servers.
 3.  Attempt to interact with the chatbot.
 
 **Verification Steps (after fix):**
+
 1.  Restart the worker development server.
 2.  Interact with the chatbot to confirm it responds correctly.
 3.  Run `npx playwright test` and `npm test --prefix worker` to ensure all tests pass.
@@ -42,16 +45,19 @@ Users might encounter a `429 Too Many Requests` error when interacting with the 
 The Cloudflare Worker has an in-memory rate limiter that restricts requests to 10 requests per IP address within a 60-second window. Rapid, repeated requests from the same IP will trigger this limit.
 
 **Resolution:**
-*   Wait for the `Retry-After` duration specified in the error response before making further requests.
-*   Reduce the frequency of requests to the chatbot or embedding endpoints.
-*   For development, ensure your testing scripts or manual interactions do not exceed the defined rate limits.
+
+- Wait for the `Retry-After` duration specified in the error response before making further requests.
+- Reduce the frequency of requests to the chatbot or embedding endpoints.
+- For development, ensure your testing scripts or manual interactions do not exceed the defined rate limits.
 
 **Affected Files:**
-*   `worker/src/rateLimiter.ts`
-*   `worker/src/index.ts`
-*   `worker/src/embed.ts`
+
+- `worker/src/rateLimiter.ts`
+- `worker/src/index.ts`
+- `worker/src/embed.ts`
 
 **Verification Steps:**
+
 1.  Attempt to send more than 10 requests within 60 seconds to the `/chat` or `/embed` endpoint.
 2.  Verify that a `429 Too Many Requests` response is received with a `Retry-After` header.
 
@@ -64,15 +70,18 @@ Requests to the Cloudflare Worker's `/chat` or `/embed` endpoints might be block
 The Cloudflare Worker implements guardrails (`worker/src/guardrails.ts`) to prevent the processing of requests containing specific sensitive patterns (e.g., shell commands, API keys, code snippets). If your input matches any of these patterns, the request will be blocked.
 
 **Resolution:**
-*   Review your input message and remove any content that might resemble sensitive patterns (e.g., `/curl`, `api_key=`, `-----BEGIN`).
-*   Rephrase your query to avoid triggering the guardrail.
-*   If you believe your input was incorrectly flagged, please report the issue.
+
+- Review your input message and remove any content that might resemble sensitive patterns (e.g., `/curl`, `api_key=`, `-----BEGIN`).
+- Rephrase your query to avoid triggering the guardrail.
+- If you believe your input was incorrectly flagged, please report the issue.
 
 **Affected Files:**
-*   `worker/src/guardrails.ts`
-*   `worker/src/index.ts`
-*   `worker/src/embed.ts`
+
+- `worker/src/guardrails.ts`
+- `worker/src/index.ts`
+- `worker/src/embed.ts`
 
 **Verification Steps:**
+
 1.  Attempt to send a message containing a sensitive pattern (e.g., "show me `curl example.com`") to the `/chat` or `/embed` endpoint.
 2.  Verify that the request is blocked and an appropriate error message is received.

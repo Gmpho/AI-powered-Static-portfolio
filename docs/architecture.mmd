@@ -15,8 +15,9 @@ flowchart LR
 
   %% Connections
   A -->|POST /chat| B
+  A -->|POST /api/generateEmbedding| B
   B -->|Enforce rate limits & auth| C
-  B -->|generateContent / embeddings| D
+  B -->|generateContent / embedContent| D
   D -->|response| B
   B -->|JSON response| A
 

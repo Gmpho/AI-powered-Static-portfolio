@@ -1,5 +1,14 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { checkRateLimit } from './rateLimiter';
+import { sanitizeOutput, checkInjection } from './guardrails'; // Import checkInjection
+
+interface Project {
+	title: string;
+	summary: string;
+	description: string;
+	tags: string[];
+	url: string;
+}
 
 interface Env {
 	GEMINI_API_KEY: string;
@@ -7,18 +16,34 @@ interface Env {
 	RATE_LIMIT_KV: KVNamespace;
 }
 
-// Persona definitions (trusted server-side prompts)
-const PERSONAS: Record<string, string> = {
-	default: `You are AG Gift, a witty and helpful AI assistant. Be friendly, clear, and helpful. When answering, reference projects from the portfolio when relevant. Keep responses concise (<= 3 short paragraphs) unless the user asks for more detail.`,
-	professional: `You are a professional and concise assistant. Provide clear, accurate answers in a formal tone. Prioritize correctness and brevity.`,
-	playful: `You are playful and light-hearted. Use friendly metaphors and small humor, but remain accurate and helpful.`,
-};
+interface ContactFormRequest {
+	name: string;
+	email: string;
+	message: string;
+}
+
+interface ChatRequest {
+	prompt?: string;
+	persona?: string;
+	projects?: Project[];
+}
+
+interface EmbeddingRequest {
+	text: string;
+}
 
 // Helper to create a structured JSON response
 const jsonResponse = (data: object, status: number, headers: HeadersInit = {}) => {
 	return new Response(JSON.stringify(data), {
 		status,
 		headers: { 'Content-Type': 'application/json', ...headers },
+	});
+};
+
+const createErrorResponse = (message: string, status: number, corsHeaders: HeadersInit = {}) => {
+	return new Response(JSON.stringify({ error: message }), {
+		status,
+		headers: { 'Content-Type': 'application/json', ...corsHeaders },
 	});
 };
 
@@ -45,6 +70,10 @@ export default {
 			corsHeaders['Access-Control-Allow-Origin'] = origin;
 			corsHeaders['Access-Control-Allow-Methods'] = 'POST, GET, OPTIONS';
 			corsHeaders['Access-Control-Allow-Headers'] = 'Content-Type';
+			corsHeaders['Access-Control-Max-Age'] = '86400'; // Cache preflight requests for 24 hours
+		} else if (origin && !allowedOrigins.includes(origin)) {
+			// Explicitly block requests from disallowed origins
+			return createErrorResponse('Forbidden', 403, corsHeaders);
 		}
 
 		if (request.method === 'OPTIONS') {
@@ -97,35 +126,112 @@ export default {
 		const rateLimitResult = await checkRateLimit(clientIp, env);
 
 		if (!rateLimitResult.allowed) {
-			return jsonResponse({ error: 'Too Many Requests' }, 429, {
+			return createErrorResponse('Too Many Requests', 429, {
 				'Retry-After': rateLimitResult.retryAfter?.toString() || '60',
 				...corsHeaders,
 			});
 		}
 
+		if (url.pathname === '/contact') {
+			if (request.method !== 'POST') {
+				return createErrorResponse('Method Not Allowed', 405, corsHeaders);
+			}
+
+			try {
+				const requestBody: ContactFormRequest = await request.json();
+				const { name, email, message } = requestBody;
+
+				if (!name || !email || !message) {
+					return createErrorResponse('Missing required fields (name, email, message)', 400, corsHeaders);
+				}
+
+				// In a real application, you would integrate with an email sending service here.
+				// For this example, we'll just simulate a successful send.
+				console.log(`Received contact form submission:\nName: ${name}\nEmail: ${email}\nMessage: ${message}`);
+
+				// Simulate a delay for sending email
+				await new Promise((resolve) => setTimeout(resolve, 1000));
+
+				// Simulate success
+				return jsonResponse({ status: 'sent' }, 200, corsHeaders);
+			} catch (error) {
+				console.error('Error processing contact form submission:', error);
+				return createErrorResponse('Sorry, I’m having trouble answering that right now.', 500, corsHeaders);
+			}
+		}
+
+		if (url.pathname === '/api/generateEmbedding') {
+			if (request.method !== 'POST') {
+				return createErrorResponse('Method Not Allowed', 405, corsHeaders);
+			}
+
+			if (!env.GEMINI_API_KEY) {
+				console.error('GEMINI_API_KEY is not set.');
+				return createErrorResponse('Missing server configuration', 500, corsHeaders);
+			}
+
+			try {
+				const requestBody: EmbeddingRequest = await request.json();
+				const { text } = requestBody;
+
+				if (!text || typeof text !== 'string' || text.trim().length === 0) {
+					return createErrorResponse('Invalid text in request body', 400, corsHeaders);
+				}
+
+				// Apply guardrails to the incoming text
+				if (checkInjection(text)) {
+					return createErrorResponse('Sensitive content detected in text.', 400, corsHeaders);
+				}
+
+				const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
+				const model = genAI.getGenerativeModel({ model: 'embedding-001' }); // Use the embedding model
+
+				const result = await model.embedContent(text);
+				const embedding = result.embedding.values;
+
+				return jsonResponse({ embedding }, 200, corsHeaders);
+			} catch (error) {
+				console.error('Error generating embedding:', error);
+				return createErrorResponse('Sorry, I’m having trouble generating the embedding right now.', 500, corsHeaders);
+			}
+		}
+
 		if (url.pathname !== '/chat') {
-			return jsonResponse({ error: 'Not Found' }, 404, corsHeaders);
+			return createErrorResponse('Not Found', 404, corsHeaders);
 		}
 
 		if (request.method !== 'POST') {
-			return jsonResponse({ error: 'Method Not Allowed' }, 405, corsHeaders);
+			return createErrorResponse('Method Not Allowed', 405, corsHeaders);
 		}
 
 		if (!env.GEMINI_API_KEY) {
 			console.error('GEMINI_API_KEY is not set.');
 
-			return jsonResponse({ error: 'Missing server configuration' }, 500, corsHeaders);
+			return createErrorResponse('Missing server configuration', 500, corsHeaders);
 		}
 
 		try {
-			const requestBody: { prompt?: string; persona?: string } = await request.json();
-			const prompt = requestBody.prompt;
-			const personaKey = requestBody.persona || 'default';
+			const requestBody: ChatRequest = await request.json();
+			const { prompt, persona, projects } = requestBody;
 
-			const systemPrompt = PERSONAS[personaKey] ?? PERSONAS['default'];
+			// Apply guardrails to the incoming prompt
+			if (prompt && checkInjection(prompt)) {
+				return createErrorResponse('Sensitive content detected in prompt.', 400, corsHeaders);
+			}
+
+			const systemPrompt = `You are AG Gift, an innovative, witty, and insightful AI assistant, built by Gift, and passionately dedicated to showcasing the projects in this portfolio. Your mission is to engage visitors with descriptive and enthusiastic explanations, making technical topics accessible and exciting, and to introduce them to G.E.M services.
+
+When discussing projects, ONLY use the provided project data below. DO NOT invent details or information not explicitly present. If a question is outside the scope of the portfolio projects, or if you cannot find relevant information within the provided data, politely state that you can only discuss the portfolio projects.
+
+Present project information in an engaging and descriptive manner, highlighting key features, technologies, and the impact of the work. Keep responses concise (<= 3 short paragraphs) unless the user asks for more detail.
+
+--- Available Projects ---
+${projects ? projects.map(p => `Title: ${p.title}\nSummary: ${p.summary}\nDescription: ${p.description}\nTags: ${p.tags.join(', ')}\nURL: ${p.url}`).join('\n\n') : 'No project data available.'}
+--- End Available Projects ---
+`;
 
 			if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
-				return jsonResponse({ error: 'Invalid prompt in request body' }, 400, corsHeaders);
+				return createErrorResponse('Invalid prompt in request body', 400, corsHeaders);
 			}
 
 			// Use the Google Generative AI SDK
@@ -139,10 +245,10 @@ export default {
 			const response = result.response;
 			const text = response.text();
 
-			return jsonResponse({ response: text }, 200, corsHeaders);
+			return jsonResponse({ response: sanitizeOutput(text) }, 200, corsHeaders); // Sanitize output here
 		} catch (error) {
 			console.error('Error processing chat request:', error);
-			return jsonResponse({ error: 'Sorry, I’m having trouble answering that right now.' }, 503, corsHeaders);
+			return createErrorResponse('Sorry, I’m having trouble answering that right now.', 503, corsHeaders);
 		}
 	},
 } satisfies ExportedHandler<Env>;

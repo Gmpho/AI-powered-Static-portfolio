@@ -25,26 +25,26 @@ graph TD
 
 A foundational test suite should cover the application's main features:
 
-*   **💬 General Conversation:**
-    *   **Trigger:** User sends a simple greeting like "Hello".
-    *   **Expected Result:** The test asserts that the bot replies with a conversational response.
+- **💬 General Conversation:**
+  - **Trigger:** User sends a simple greeting like "Hello".
+  - **Expected Result:** The test asserts that the bot replies with a conversational response.
 
-*   **🔍 Project Search:**
-    *   **Trigger:** User sends a message like "Find a project about TypeScript".
-    *   **Expected Result:** The test asserts that the bot's response contains the name and description of a relevant project.
+- **🔍 Project Search:**
+  - **Trigger:** User sends a message like "Find a project about TypeScript".
+  - **Expected Result:** The test asserts that the bot's response contains the name and description of a relevant project, leveraging the semantic search functionality.
 
-*   **📝 Contact Form:**
-    *   **Trigger:** User sends a message like "How can I contact you?".
-    *   **Expected Result:** The test asserts that the contact form is rendered within the chat window. It could then proceed to fill out and submit the form, verifying the success message.
+- **📝 Contact Form:**
+  - **Trigger:** User sends a message like "How can I contact you?".
+  - **Expected Result:** The test asserts that the contact form is rendered within the chat window. It could then proceed to fill out and submit the form, verifying the success message.
 
-*   **📚 Conversation History:**
-    *   **Trigger:** A test that involves multiple message exchanges.
-    *   **Expected Result:** The test asserts that the bot's later responses are contextually aware of the earlier messages in the conversation.
+- **📚 Conversation History:**
+  - **Trigger:** A test that involves multiple message exchanges.
+  - **Expected Result:** The test asserts that the bot's later responses are contextually aware of the earlier messages in the conversation.
 
-*   **🔒 Rate Limiting:**
-    *   **Trigger:** Rapidly send more requests than the defined rate limit to the chatbot.
-    *   **Expected Result:** The application should display a `429 Too Many Requests` error or a user-friendly message indicating rate limiting, and subsequent requests should be blocked until the `Retry-After` period expires.
+- **🔒 Rate Limiting:**
+  - **Trigger:** Rapidly send more requests than the defined rate limit to the chatbot.
+  - **Expected Result:** The application should display a `429 Too Many Requests` error or a user-friendly message indicating rate limiting, and subsequent requests should be blocked until the `Retry-After` period expires.
 
-*   **🛡️ Guardrails (Sensitive Content Blocking):**
-    *   **Trigger:** Send a message containing known sensitive patterns (e.g., `curl`, `api_key=`, `-----BEGIN`).
-    *   **Expected Result:** The application should display an error message indicating that sensitive content was detected and the request was blocked, without processing the message further.
+- **🛡️ Guardrails (Sensitive Content Blocking):**
+  - **Trigger:** Send a message containing known sensitive patterns (e.g., `curl`, `api_key=`, `-----BEGIN`).
+  - **Expected Result:** The application should display an error message indicating that sensitive content was detected and the request was blocked, without processing the message further.

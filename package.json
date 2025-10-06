@@ -11,8 +11,8 @@
     "deploy": "npm install --prefix worker && wrangler deploy worker/src/index.ts"
   },
   "dependencies": {
-
-    "@sentry/browser": "^10.17.0"
+    "@sentry/browser": "^10.17.0",
+    "concurrently": "^9.2.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.1",

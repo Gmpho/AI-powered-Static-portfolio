@@ -13,8 +13,8 @@ This project uses GitHub Actions to build and publish the static frontend (GitHu
 - `GITHUB_TOKEN` (provided by Actions) — used for artifact operations
 - `CF_API_TOKEN` — Cloudflare API token with `Workers:Edit` and `Account:Read` (store safely)
 - `CF_ACCOUNT_ID` — your Cloudflare account id
-- `RATE_LIMIT_KV_ID` — KV namespace ID used by the worker for rate limiting (optional: use wrangler envs instead)
-- `GEMINI_API_KEY` — (if you deploy worker in CI, otherwise keep in environment)
+- `RATE_LIMIT_KV_ID` — KV namespace ID used by the worker for rate limiting
+- `GEMINI_API_KEY` — Gemini API key for the Worker
 - `ALLOWED_ORIGINS` — comma-separated list of allowed origins for CORS (optional)
 
 ## High-level Workflow
@@ -72,7 +72,7 @@ jobs:
                     CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
                 run: |
                     npm --prefix worker run build || true
-                    npx wrangler publish worker/src/index.ts --account-id ${{ secrets.CF_ACCOUNT_ID }}
+                    npx wrangler publish worker/src/index.ts
 ```
 
 Notes:

@@ -1,3 +1,13 @@
+import { projects } from "./projects";
+
+interface Project {
+  title: string;
+  summary: string;
+  description: string;
+  tags: string[];
+  url: string;
+}
+
 interface WorkerError {
   error: string;
 }
@@ -8,11 +18,15 @@ interface WorkerSuccess {
 
 type WorkerResponse = WorkerSuccess | WorkerError;
 
-export async function sendPrompt(prompt: string, persona?: string): Promise<string> {
+export async function sendPrompt(
+  prompt: string,
+  persona?: string,
+): Promise<string> {
   const workerUrl = import.meta.env.VITE_WORKER_URL;
 
   if (!workerUrl) {
-    const errorMessage = "Configuration error: VITE_WORKER_URL is not set. Please check your frontend/.env.local file.";
+    const errorMessage =
+      "Configuration error: VITE_WORKER_URL is not set. Please check your frontend/.env.local file.";
     console.error(errorMessage);
     return errorMessage;
   }
@@ -21,22 +35,23 @@ export async function sendPrompt(prompt: string, persona?: string): Promise<stri
     const response = await fetch(`${workerUrl}/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, persona }),
+      body: JSON.stringify({ prompt, persona, projects }),
     });
 
     const data: WorkerResponse = await response.json();
 
     if (!response.ok) {
-      const errorMsg = (data as WorkerError).error || `Request failed with status ${response.status}`;
+      const errorMsg =
+        (data as WorkerError).error ||
+        `Request failed with status ${response.status}`;
       throw new Error(errorMsg);
     }
 
-    if ('response' in data) {
+    if ("response" in data) {
       return data.response;
     }
-    
-    throw new Error("Invalid response structure from worker.");
 
+    throw new Error("Invalid response structure from worker.");
   } catch (error) {
     console.error("Failed to send prompt to worker:", error);
     if (error instanceof Error) {

@@ -12,7 +12,6 @@
 	"dependencies": {
 		"@google/generative-ai": "^0.24.1",
 		"copy-of-ai-powered-portfolio": "file:..",
-		"pdf-parse": "^2.1.6",
 		"zod": "^4.1.11"
 	},
 	"devDependencies": {
