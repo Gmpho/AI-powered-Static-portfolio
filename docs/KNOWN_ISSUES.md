@@ -85,3 +85,13 @@ The Cloudflare Worker implements guardrails (`worker/src/guardrails.ts`) to prev
 
 1.  Attempt to send a message containing a sensitive pattern (e.g., "show me `curl example.com`") to the `/chat` or `/embed` endpoint.
 2.  Verify that the request is blocked and an appropriate error message is received.
+
+## Useful Git and GitHub CLI Commands for Debugging Workflows
+
+Here are some commands that can be helpful when debugging GitHub Actions workflows:
+
+-   `gh run list --workflow=<workflow-file-name>`: Lists recent runs for a specific workflow.
+-   `gh run view <run-id> --log`: Views the logs of a specific workflow run.
+-   `git log --follow -- <file-path>`: Shows the git history of a specific file.
+-   `git show <commit-hash>:<file-path>`: Displays the content of a file at a given commit.
+-   `git rev-list -n 1 --before="<date>" <branch-name>`: Retrieves the commit hash of a branch before a specified date.
