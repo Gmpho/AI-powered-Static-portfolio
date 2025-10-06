@@ -36,12 +36,13 @@ jobs:
       - name: Install worker dependencies
         run: npm ci
         working-directory: ./worker
-      - name: Install Wrangler
-        run: npm install -g wrangler@4.42.0
       - name: Deploy worker
         id: deploy_worker_step
-        run: wrangler deploy worker/src/index.ts --json --verbose --api-token ${{ secrets.CLOUDFLARE_API_TOKEN }} --account-id ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        working-directory: ./worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: "deploy worker/src/index.ts"
 
   deploy:
     needs: deploy-worker
