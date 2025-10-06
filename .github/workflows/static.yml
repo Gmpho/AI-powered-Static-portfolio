@@ -79,7 +79,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: "deploy worker/src/index.ts --json" # Deploy and output JSON for URL
+          command: "deploy worker/src/index.ts --json --verbose" # Deploy and output JSON for URL
         id: deploy_worker_step
         env:
           RATE_LIMIT_KV_ID: ${{ secrets.RATE_LIMIT_KV_ID }}
