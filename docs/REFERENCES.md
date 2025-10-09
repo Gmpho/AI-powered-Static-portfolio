@@ -14,6 +14,15 @@ This file contains a list of official documentation and other useful resources r
 
 - **Web Speech API on MDN:** [https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API)
 - **Fetch API on MDN:** [https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
+- 
+https://developers.cloudflare.com/pulumi/tutorial/hello-world/
+https://developers.cloudflare.com/workers/testing/vitest-integration/known-issues/
+https://developers.cloudflare.com/workers/testing/vitest-integration/write-your-first-test/
+https://hono.dev/docs/guides/testing
+https://developers.cloudflare.com/workers/testing/vitest-integration/test-apis/
+https://developers.cloudflare.com/d1/tutorials/build-an-api-to-access-d1/
+https://developers.cloudflare.com/workers/examples/cors-header-proxy/
+
 
 ## 🎨 Frontend Development
 
