@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AI-Powered Portfolio</title>
     <link rel="stylesheet" href="index.css" />
-    
+
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
@@ -13,22 +13,18 @@
       crossorigin="anonymous"
       referrerpolicy="no-referrer"
     />
-    <script type="importmap">
-      {
-        "imports": {
-          "@google/genai": "https://esm.run/@google/genai"
-        }
-      }
-    </script>
+
     <script>
       // Set theme on initial load to prevent FOUC (Flash of Unstyled Content)
-      (function() {
-        const theme = localStorage.getItem('theme');
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (theme === 'dark' || (!theme && prefersDark)) {
-          document.documentElement.setAttribute('data-theme', 'dark');
+      (function () {
+        const theme = localStorage.getItem("theme");
+        const prefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)",
+        ).matches;
+        if (theme === "dark" || (!theme && prefersDark)) {
+          document.documentElement.setAttribute("data-theme", "dark");
         } else {
-          document.documentElement.setAttribute('data-theme', 'light');
+          document.documentElement.setAttribute("data-theme", "light");
         }
       })();
     </script>
@@ -43,16 +39,20 @@
             <li><a href="#projects">Projects</a></li>
             <li><button class="contact-btn">Contact</button></li>
             <li>
-                <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme">
-                    <!-- Icon will be set by JavaScript -->
-                </button>
+              <button
+                id="theme-toggle"
+                class="theme-toggle-btn"
+                aria-label="Toggle theme"
+              >
+                <!-- Icon will be set by JavaScript -->
+              </button>
             </li>
           </ul>
         </nav>
       </header>
 
       <main>
-        <section class="hero" id="about">
+        <section class="hero" id="home">
           <h1>AI-Powered Portfolio</h1>
           <p>
             Explore my projects and ask questions about them using the AI
@@ -60,28 +60,91 @@
           </p>
         </section>
 
+        <section id="about" class="about-me">
+          <div class="about-me-content container">
+            <img
+              src="https://i.pravatar.cc/200?u=giftmpho"
+              alt="A professional headshot of Gift Mpho."
+              class="profile-photo"
+            />
+            <div class="about-me-text">
+              <h2>About Me</h2>
+              <p>
+                I am a passionate AI DevOps Engineer with a knack for building
+                intelligent, scalable, and secure applications. My expertise
+                lies in bridging the gap between software development and
+                operations, leveraging AI to automate workflows, optimize
+                performance, and create seamless user experiences.
+              </p>
+              <p>
+                From crafting sophisticated trading bots with Python to
+                developing interactive frontends with TypeScript, I thrive on
+                solving complex problems. Explore my projects below and feel
+                free to ask my AI assistant anything about my work!
+              </p>
+              <div class="social-links">
+                <a
+                  href="https://github.com/Gmpho"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="GitHub Profile"
+                >
+                  <i class="fab fa-github"></i>
+                </a>
+                <a
+                  href="https://www.linkedin.com/in/gift-mpho-a5a536173"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="LinkedIn Profile"
+                >
+                  <i class="fab fa-linkedin"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section class="projects" id="projects">
-          <!-- Project cards will be injected here by index.tsx -->
+          <!-- Project cards will be injected here by index.ts -->
         </section>
       </main>
     </div>
 
     <!-- Chatbot Widget -->
-    <div id="chatbot-fab" class="chatbot-fab" role="button" aria-label="Open chat">
+    <div
+      id="chatbot-fab"
+      class="chatbot-fab"
+      role="button"
+      aria-label="Open chat"
+    >
       <i class="fas fa-comment-dots"></i>
     </div>
 
-    <div id="chatbot-window" class="chatbot-window" role="dialog" inert>
+    <div
+      id="chatbot-window"
+      class="chatbot-window"
+      role="dialog"
+      aria-hidden="true"
+    >
       <div class="chatbot-header">
         <div class="chatbot-avatar">
           <i class="fas fa-robot"></i>
         </div>
         <div class="chatbot-title">AI Assistant</div>
-        <button id="chatbot-close" class="chatbot-close" aria-label="Close chat">
-            <i class="fas fa-times"></i>
+        <button
+          id="chatbot-close"
+          class="chatbot-close"
+          aria-label="Close chat"
+        >
+          <i class="fas fa-times"></i>
         </button>
       </div>
-      <div id="chatbot-messages" class="chatbot-messages" role="log" aria-live="polite">
+      <div
+        id="chatbot-messages"
+        class="chatbot-messages"
+        role="log"
+        aria-live="polite"
+      >
         <!-- Messages will be injected here -->
       </div>
       <div class="chatbot-input-container">
@@ -98,6 +161,14 @@
           </button>
           <button type="submit" id="chatbot-send" aria-label="Send message">
             <i class="fas fa-paper-plane"></i>
+          </button>
+          <button
+            type="button"
+            id="chatbot-stop"
+            aria-label="Stop generating"
+            style="display: none"
+          >
+            <i class="fas fa-stop"></i>
           </button>
         </form>
       </div>

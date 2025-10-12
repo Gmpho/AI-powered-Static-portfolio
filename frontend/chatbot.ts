@@ -1,44 +1,63 @@
-interface WorkerResponse {
-  response?: string;
-  error?: string;
+import { projects } from "./projects";
+
+interface Project {
+  title: string;
+  summary: string;
+  description: string;
+  tags: string[];
+  url: string;
 }
 
-export async function sendPrompt(prompt: string): Promise<string> {
+interface WorkerError {
+  error: string;
+}
+
+interface WorkerSuccess {
+  response: string;
+}
+
+type WorkerResponse = WorkerSuccess | WorkerError;
+
+export async function sendPrompt(
+  prompt: string,
+  persona?: string,
+): Promise<string> {
   const workerUrl = import.meta.env.VITE_WORKER_URL;
 
   if (!workerUrl) {
-    console.error("VITE_WORKER_URL is not set. Please check your frontend/.env.local file.");
-    return "Configuration error: Worker URL not found.";
+    const errorMessage =
+      "Configuration error: VITE_WORKER_URL is not set. Please check your frontend/.env.local file.";
+    console.error(errorMessage);
+    return errorMessage;
   }
 
   try {
     const response = await fetch(`${workerUrl}/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify({ prompt, persona, projects }),
     });
 
+    const data: WorkerResponse = await response.json();
+
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Error from worker (status: ${response.status}):`, errorText);
-      throw new Error("Failed to get a response from the worker.");
+      const errorMsg =
+        (data as WorkerError).error ||
+        `Request failed with status ${response.status}`;
+      throw new Error(errorMsg);
     }
 
-    const data: any = await response.json();
-
-    if (data.response) {
+    if ("response" in data) {
       return data.response;
     }
 
-    // Handle the case where the worker returns the raw Gemini response
-    if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-        return data.candidates[0].content.parts[0].text;
-    }
-
-    throw new Error(data.error || "Received an unknown error from the worker.");
-
+    throw new Error("Invalid response structure from worker.");
   } catch (error) {
-    console.error("Fetch request to worker failed:", error);
-    throw error;
+    console.error("Failed to send prompt to worker:", error);
+    if (error instanceof Error) {
+      // Return the error message to be displayed in the chat.
+      return `Sorry, I encountered an error: ${error.message}`;
+    }
+    return "An unknown error occurred while trying to communicate with the AI.";
   }
 }

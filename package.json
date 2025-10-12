@@ -6,15 +6,20 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e": "npx playwright test",
+    "deploy": "npm install --prefix worker && wrangler deploy worker/src/index.ts"
   },
   "dependencies": {
-    "@google/genai": "^1.16.0"
+    "@sentry/browser": "^10.17.0",
+    "concurrently": "^9.2.1"
   },
   "devDependencies": {
-    "@types/node": "^22.14.0",
-    "typescript": "~5.8.2",
-    "vite": "^7.1.4"
+    "@playwright/test": "^1.55.1",
+    "@types/node": "latest",
+    "typescript": "latest",
+    "vite": "latest",
+    "wrangler": "^4.42.0"
   },
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "latest"

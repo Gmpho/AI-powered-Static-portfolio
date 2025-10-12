@@ -1,19 +1,61 @@
-# Security Considerations
+# Security Overview and Best Practices
 
-Security is a critical aspect of any application that uses powerful APIs like Gemini. The current architecture of this project is designed for **development and demonstration purposes only** and includes security vulnerabilities that must be addressed before deploying to a production environment.
+Security is paramount for any application, especially one leveraging powerful APIs like Gemini. This document outlines the current security architecture and best practices implemented in this project.
 
-## 1. API Key Exposure on the Frontend
+## 1. Secure API Access Model: Cloudflare Worker Proxy
 
--   **The Issue:** The most significant security risk in the current implementation is that the Google Gemini API key is exposed in the client-side code. The key is included as a build-time environment variable, but anyone with browser developer tools can inspect the application's network requests or source code to find and copy the key.
--   **The Risk:** A leaked API key can be used by malicious actors to make calls to the Gemini API on your behalf, potentially leading to significant, unexpected costs on your Google Cloud bill.
--   **The Rule for Production:** **Never expose API keys in frontend code.**
+**Previous Issue:** The initial implementation exposed the Google Gemini API key on the client-side, posing a significant security risk.
 
-## 2. Recommended Production Architecture: Backend Proxy
+**Current Solution:** This critical vulnerability has been resolved. All communication with the Gemini API is now securely routed through a **Cloudflare Worker**, acting as a robust backend proxy. This enforces a strict `Frontend Browser -> Cloudflare Worker -> Google Gemini API` flow.
 
--   **The Solution:** To secure the API key, all communication with the Gemini API must be routed through a backend you control. This is known as a proxy or a "Backend for Frontend" (BFF).
--   **How It Works:**
-    1.  The frontend application sends the user's message to your backend server (e.g., an endpoint like `/api/chat`).
-    2.  Your backend server, which can be a Node.js application or a serverless function, securely stores the Gemini API key as an environment variable that is never exposed to the public.
-    3.  The backend server receives the request from your frontend, attaches the secret API key, and forwards the request to the Gemini API.
-    4.  The Gemini API responds to your backend, and your backend forwards the response back to the frontend.
--   **Benefits:** This design ensures the API key never leaves your secure server environment, completely mitigating the risk of exposure. It also provides a central place to add other features like logging, caching, and rate limiting.
+**Benefits:**
+
+- **API Key Protection:** The `GEMINI_API_KEY` is securely stored as a Cloudflare Worker secret, never exposed to the client-side or committed to the repository.
+- **Centralized Control:** The Worker provides a single, secure point for managing API calls, enforcing policies, and implementing additional security measures.
+
+## 2. Comprehensive Input and Output Guardrails
+
+To prevent malicious input and ensure safe outputs, the Cloudflare Worker implements a multi-layered guardrail system:
+
+- **Input Validation (Zod):** All incoming requests to the Worker's API endpoints (e.g., `/chat`, `/embed`) undergo strict schema validation using Zod. This prevents oversized or malformed payloads from reaching the core logic.
+- **Injection Detection (Tripwires):** The Worker employs regular expression-based tripwires (`worker/src/guardrails.ts`) to proactively block requests containing sensitive patterns indicative of injection attempts (e.g., `/curl|wget|base64|sk-|api_key=|-----BEGIN/i`). Requests matching these patterns are politely refused.
+- **Output Sanitization:** Before any AI-generated content is sent back to the frontend, it is thoroughly sanitized server-side. This process (`worker/src/guardrails.ts`) strips potentially harmful elements like `<script>` tags, `<iframe>` tags, `data:` URIs, and long base64 strings, and redacts token-like patterns (e.g., `sk-`, `-----BEGIN`), preventing XSS and secret leakage.
+
+## 3. Rate Limiting to Prevent Abuse
+
+To protect against API abuse and denial-of-service attacks, the Cloudflare Worker implements rate limiting:
+
+- **In-Memory Rate Limiter:** A basic in-memory mechanism tracks request timestamps per client IP address, limiting requests to 10 per IP within a 60-second sliding window. Exceeding this limit results in a `429 Too Many Requests` response with a `Retry-After` header.
+
+## 4. Secure Secret Management
+
+All sensitive configuration and API keys are managed as Cloudflare Worker secrets:
+
+- `GEMINI_API_KEY`: Google Gemini API key.
+- `ALLOWED_ORIGINS`: Whitelisted domains for CORS.
+
+These secrets are never committed to the repository or exposed client-side.
+
+## 5. CORS Enforcement
+
+The Cloudflare Worker strictly enforces Cross-Origin Resource Sharing (CORS) policies. The `ALLOWED_ORIGINS` secret ensures that API endpoints are only accessible from explicitly whitelisted domains, preventing unauthorized access from other origins.
+
+## 6. Audit Logging
+
+For observability and security auditing, the Worker logs request details, including timestamps, IP addresses, user-agents, and API responses. For contact form submissions and chat requests, the full prompt and message content are logged for debugging and operational purposes. Raw prompts or responses containing PII are logged for debugging purposes.
+
+## 7. Comprehensive Testing for Security
+
+Security measures are validated through a comprehensive testing strategy:
+
+- **Worker Unit Tests (Vitest):** Dedicated unit tests (`worker/test/guardrails.spec.ts`) verify the correct functioning of Zod validation, injection detection, and output sanitization.
+- **End-to-End (E2E) Security Tests (Playwright):** Automated E2E tests (`.github/workflows/e2e-security.yml`) run in CI to simulate real-world attack scenarios, including prompt injection, XSS, base64 uploads, and rate limit evasion, ensuring the guardrails and rate limiting mechanisms are effective.
+
+## 8. Continuous Integration and Deployment (CI/CD)
+
+The CI/CD pipeline ensures that all security measures are consistently applied and tested:
+
+- Automated builds, tests, and deployments to GitHub Pages (frontend) and Cloudflare Workers (backend).
+- Security tests are integrated into the workflow to catch regressions early.
+
+This robust security framework ensures the AI-powered portfolio remains protected against common web vulnerabilities and API misuse.

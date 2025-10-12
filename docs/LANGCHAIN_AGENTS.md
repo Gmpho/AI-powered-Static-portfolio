@@ -27,9 +27,9 @@ graph TD
 
 The current implementation is **not a true agent** because the LLM does not choose the actions. Instead, the application uses simple `if/else` logic based on keywords to decide which "tool" (a client-side function) to run.
 
-*   **LLM as Conversational Engine:** The project currently uses the Gemini API as a high-quality response generator, but not as the core reasoning engine for actions.
-*   **Simulated Tools:** The functions for searching projects or showing a contact form are the equivalent of LangChain's `Tools`. They are discrete, single-purpose functions.
-*   **Hardcoded Orchestration:** The application's `handleChatSubmit` function acts as a simple, hardcoded "Agent Executor." It is responsible for deciding which tool to run.
+- **LLM as Conversational Engine:** The project currently uses the Gemini API as a high-quality response generator, but not as the core reasoning engine for actions.
+- **Simulated Tools:** The functions for searching projects or showing a contact form are the equivalent of LangChain's `Tools`. They are discrete, single-purpose functions.
+- **Hardcoded Orchestration:** The application's `handleChatSubmit` function acts as a simple, hardcoded "Agent Executor." It is responsible for deciding which tool to run.
 
 ## 🛣️ Path to a True Agent
 
@@ -64,20 +64,18 @@ graph TD
 
 The current implementation is **not a true agent** because the LLM does not choose the actions. Instead, the application uses simple `if/else` logic based on keywords to decide which "tool" (a client-side function) to run.
 
-*   **LLM as Conversational Engine:** The project currently uses the Gemini API as a high-quality response generator, but not as the core reasoning engine for actions.
-*   **Simulated Tools:** The functions for searching projects or showing a contact form are the equivalent of LangChain's `Tools`. They are discrete, single-purpose functions.
-*   **Hardcoded Orchestration:** The application's `handleChatSubmit` function acts as a simple, hardcoded "Agent Executor." It is responsible for deciding which tool to run.
+- **LLM as Conversational Engine:** The project currently uses the Gemini API as a high-quality response generator, but not as the core reasoning engine for actions.
+- **Simulated Tools:** The functions for searching projects or showing a contact form are the equivalent of LangChain's `Tools`. They are discrete, single-purpose functions.
+- **Hardcoded Orchestration:** The application's `handleChatSubmit` function acts as a simple, hardcoded "Agent Executor." It is responsible for deciding which tool to run.
 
 ## 🛣️ Path to a True Agent
 
 To evolve this project into a true agent architecture, the orchestration logic would need to be shifted from the client-side code to the LLM itself. This would involve:
 
-1.  **☁️ Moving Logic to a Backend (Cloudflare Worker):** Create a secure backend server (like the existing Cloudflare Worker) that can manage tools and API keys.
+1.  **☁️ Moving Logic to a Backend (Cloudflare Worker):** This has largely been implemented. The existing Cloudflare Worker now securely handles all AI calls (chat and embedding generation) and can manage tools and API keys.
 2.  **📖 Describing Tools to the LLM:** Provide the Gemini model with a list of available tools and descriptions of what they do and what parameters they accept.
 3.  **🤖 Letting the LLM Decide:** Prompt the Gemini model to respond with a JSON object specifying which tool to call based on the user's query. The backend would then execute that tool.
 
-Frameworks like LangChain.js are designed to simplify this exact process, providing a robust structure for building powerful, tool-using agents.
-2.  **📖 Describing Tools to the LLM:** Provide the Gemini model with a list of available tools and descriptions of what they do and what parameters they accept.
-3.  **🤖 Letting the LLM Decide:** Prompt the Gemini model to respond with a JSON object specifying which tool to call based on the user's query. The backend would then execute that tool.
+Frameworks like LangChain.js are designed to simplify this exact process, providing a robust structure for building powerful, tool-using agents.  2. **📖 Describing Tools to the LLM:** Provide the Gemini model with a list of available tools and descriptions of what they do and what parameters they accept. 3. **🤖 Letting the LLM Decide:** Prompt the Gemini model to respond with a JSON object specifying which tool to call based on the user's query. The backend would then execute that tool.
 
 Frameworks like LangChain.js are designed to simplify this exact process, providing a robust structure for building powerful, tool-using agents.

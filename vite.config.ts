@@ -1,13 +1,12 @@
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from "vite";
 
-export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, '.', '');
-    return {
-      root: './frontend', // Set the root to the frontend directory
-      base: '/AI-powered-Static-portfolio/',
-      define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
-      }
-    };
+// https://vitejs.dev/config/
+export default defineConfig({
+  root: "./frontend", // Set the root to the frontend directory
+  base: "/AI-powered-Static-portfolio/", // Required for GitHub Pages deployment
+  build: {
+    outDir: "../dist", // Output to a `dist` folder in the project root
+    emptyOutDir: true, // Clean the output directory before building
+    sourcemap: false, // Do not generate source maps for production
+  },
 });

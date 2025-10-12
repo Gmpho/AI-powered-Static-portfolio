@@ -54,6 +54,7 @@ worker/.env.local
 *.pem
 *.key
 *.crt
+GEMINI_SYSTEM_PROMPT.md
 
 .gemini/
 gha-creds-*.json
@@ -66,3 +67,11 @@ gha-creds-*.json
 # Ignore deployment instructions
 plain.text deoloy
 plain.text issues
+
+# Debugging files
+debugg.issue3
+debuggissue2
+option.md
+
+# Test reports
+playwright-report/

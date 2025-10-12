@@ -4,7 +4,10 @@ export default defineWorkersConfig({
 	test: {
 		poolOptions: {
 			workers: {
-				wrangler: { configPath: './wrangler.jsonc' },
+				wrangler: { configPath: './wrangler.toml' },
+				miniflare: {
+					kvNamespaces: ['RATE_LIMIT_KV', 'RESUME_KV', 'SYSTEM_PROMPT_KV'],
+				},
 			},
 		},
 	},
