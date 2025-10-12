@@ -1,0 +1,21 @@
+name = "ai-powered-static-portfolio-worker"
+main = "src/index.ts"
+compatibility_date = "2025-10-01"
+workers_dev = true
+preview_urls = false
+
+# KV Namespace for rate limiting
+kv_namespaces = [
+  { binding = "RATE_LIMIT_KV", id = "${RATE_LIMIT_KV_ID}" }
+]
+
+# CORS configuration
+[vars]
+ALLOWED_ORIGINS = "${ALLOWED_ORIGINS}"
+
+# Production environment for canary deployments
+[env.production]
+name = "production"
+route = { pattern = "gmpho.github.io/*" } # Adjust to your domain
+# For canary, use `wrangler deploy --env production --split 5 <previous-version>` in CI after initial deploy
+# Then, after monitoring, `wrangler deploy --env production --split 100` to promote
