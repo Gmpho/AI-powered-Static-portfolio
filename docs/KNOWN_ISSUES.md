@@ -8,7 +8,7 @@
 The chatbot was returning a "503 Service Unavailable" error to the frontend, and the worker logs showed a "404 Not Found" error from the Google Generative AI API with the message: `models/gemini-1.5-flash is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.` This occurred in both local development and production environments.
 
 **Root Cause:**
-The `worker/src/index.ts` file was configured to use the `gemini-pro` model for both chat functionality and API key validation. However, the project's `GEMINI.md` documentation indicated that the intended model was `gemini-2.5-flash`. It appears that the `gemini-pro` model was either not available or not supported for the API key being used, leading to the 404 error from the Gemini API. The `option.md` file contained logs showing the `gemini-1.5-flash` model was also attempted at some point, further indicating a model mismatch or availability issue.
+The `worker/src/index.ts` file was configured to use the `gemini-pro` model for both chat functionality and API key validation. However, the project's `GEMINI.md` documentation indicated that the intended model was `gemini-2.0-flash`. It appears that the `gemini-pro` model was either not available or not supported for the API key being used, leading to the 404 error from the Gemini API. The `option.md` file contained logs showing the `gemini-1.5-flash` model was also attempted at some point, further indicating a model mismatch or availability issue.
 
 **Resolution:**
 The model name in `worker/src/index.ts` was updated from `gemini-pro` to `gemini-2.5-flash` in two locations:

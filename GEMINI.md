@@ -19,7 +19,7 @@ This is a client-side-only, AI-powered portfolio website. It features a conversa
 - **Frontend**: TypeScript, HTML5, CSS3
 
 - **AI Layer**: Cloudflare Workers, Google Gemini API (`@google/genai` SDK)
-- **Gemini Model**: `gemini-2.5-flash`
+- **Gemini Model**: `gemini-2.0-flash`
 - **Build Tool**: Vite
 - **Speech Recognition**: Web Speech API
 
@@ -171,6 +171,25 @@ Build and run the Docker container using the provided `Dockerfile`.
 ## Deployment
 
 The portfolio is automatically deployed to GitHub Pages whenever changes are pushed to the `main` branch. The deployment process is managed by the `.github/workflows/static.yml` GitHub Actions workflow.
+
+### Dynamic Nginx `connect-src` for Worker URL
+
+To ensure the Nginx `Content-Security-Policy`'s `connect-src` directive correctly points to your Cloudflare Worker URL in different environments (e.g., local development, production), the `nginx.conf` has been updated to use a placeholder variable `${WORKER_URL}`.
+
+During Docker build or deployment, you must dynamically inject the actual worker URL into the `nginx.conf`. A common method for this is using `envsubst`.
+
+**Example using `envsubst` in a `Dockerfile` or entrypoint script:**
+
+```dockerfile
+# In your Dockerfile, after copying nginx.conf
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Use envsubst to replace the placeholder with the actual environment variable
+# Ensure WORKER_URL is set in your build environment or deployment configuration
+CMD sh -c "envsubst '\$WORKER_URL' < /etc/nginx/conf.d/default.conf > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+```
+
+Ensure the `WORKER_URL` environment variable is correctly set in your CI/CD pipeline or Docker run command.
 
 # 📜 Development Conventions
 

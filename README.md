@@ -35,10 +35,12 @@ Traditional portfolios are static and passive. This project transforms the conve
 
 - **🤖 Conversational AI Chatbot:** Engage directly with an AI assistant powered by the cutting-edge Gemini API to explore projects and gain insights.
 - **🎨 Dynamic Project Showcase:** A clean, modern interface designed to beautifully present diverse portfolio projects.
-- **🔍 Intelligent Semantic Search:** Leverage AI to semantically search for projects based on natural language queries, providing highly relevant results.
-- **📝 Seamless Contact Integration:** The chatbot can intuitively guide users to an interactive contact form, simplifying communication.
-- **💾 Session-based Conversations:** Chat history is automatically saved to `sessionStorage`, ensuring continuity within a single browser tab and clearing upon tab closure.
-- **🎤 Intuitive Voice Input:** Interact hands-free with the chatbot using integrated voice-to-text functionality via the Web Speech API.
+- **🔍 Intelligent Semantic Search:** Leverage AI to semantically search for projects based on natural language queries, providing highly relevant results. This now includes a robust keyword fallback and graceful handling of API quota errors, ensuring search functionality remains available and user-friendly.
+- **📝 Seamless Contact Integration:** The chatbot is designed to intuitively guide users to an interactive contact form, simplifying communication. *Note: This feature is planned for future implementation.*
+
+- **💾 Session-based Conversations:** Chat history is automatically saved to `sessionStorage`, ensuring continuity within a single browser tab and clearing upon tab closure. The full conversation history is now sent with each request to the worker, ensuring the AI model maintains context.
+- **🎤 Intuitive Voice Input:** The application is designed to allow hands-free interaction with the chatbot using integrated voice-to-text functionality via the Web Speech API. *Note: This feature is planned for future implementation.*
+
 - **🌗 Adaptive Light/Dark Mode:** Personalize your viewing experience with a toggle for light and dark themes.
 
 ## 🛠️ Technology Stack
@@ -46,7 +48,7 @@ Traditional portfolios are static and passive. This project transforms the conve
 This project is built with a selection of modern and efficient technologies, chosen for their performance, flexibility, and developer experience.
 
 - **Frontend**: TypeScript, HTML5, CSS3 (No framework, uses JavaScript template literals for HTML templating)
-- **AI Layer**: Cloudflare Workers (secure API proxy, rate limiting, guardrails, embedding generation, calling Google Gemini API directly), Google Gemini API (using `gemini-2.5-flash` model, `embedding-001` model)
+- **AI Layer**: Cloudflare Workers (secure API proxy, distributed KV-backed rate limiting, refined guardrails, embedding generation with caching, calling Google Gemini API directly), Google Gemini API (using `gemini-2.0-flash` model, `embedding-001` model)
 - **Testing**: Playwright (for End-to-End testing), Vitest (for Worker unit testing)
 - **Speech Recognition**: Web Speech API
 
@@ -66,7 +68,10 @@ flowchart LR
 
     subgraph "Cloudflare"
         B[<i class="fas fa-cloud"></i> Worker]
-        C[(<i class="fas fa-database"></i> KV Store)]
+        C[(<i class="fas fa-database"></i> KV RATE_LIMIT_KV)]
+        G[Guardrails]
+        T[Tools (projectSearch, displayContactForm)]
+        E[KV PROJECT_EMBEDDINGS_KV]
     end
 
     subgraph "Google Cloud"
@@ -78,14 +83,23 @@ flowchart LR
     style B fill:#E8F8F5,stroke:#1ABC9C,stroke-width:2px
     style C fill:#E8F8F5,stroke:#1ABC9C,stroke-width:2px
     style D fill:#FDF2E9,stroke:#E67E22,stroke-width:2px
+    style G fill:#FFDDC1;stroke:#FF9933;stroke-width:1.5px;color:#8B4513;
+    style T fill:#E0E0FF;stroke:#8A2BE2;stroke-width:1.5px;color:#4B0082;
+    style E fill:#FFF8E8;stroke:#FF9F1C;stroke-width:1px;color:#7a4a00;
 
     %% Connections
-    A -- "POST /chat" --> B
+    A -- "POST /chat (prompt, history)" --> B
     A -- "POST /api/generateEmbedding" --> B
     B -- "Auth & Rate Limit" --> C
-    B -- "generateContent / embedContent" --> D
-    D -- "{ response }" --> B
-    B -- "JSON" --> A
+    B -- "Apply Guardrails" --> G
+    G --> "If safe, proceed" --> B
+    B -- "generateContent (with tools, history)" --> D
+    D -- "response (text/tool_call)" --> B
+    B -- "Execute Tool (e.g., projectSearch)" --> T
+    T --> "Tool Output (projects, notice)" --> B
+    B -- "Cache Query Embedding" --> E
+    E --> "Retrieve Project Embeddings" --> T
+    B -- "Streaming SSE (text/tool_response)" --> A
 ```
 
 ### Cloudflare Worker Endpoints
@@ -126,7 +140,7 @@ The Cloudflare Worker acts as a secure proxy and backend for AI-related function
 
 `Frontend Browser -> Cloudflare Worker -> Google Gemini API`
 
-> **✅ Enhanced Security:** The `GEMINI_API_KEY` and `ALLOWED_ORIGINS` are securely stored as **Cloudflare Worker secrets**, preventing their exposure. The `VITE_WORKER_URL` for the frontend is stored as a **GitHub repository secret`. This robust approach is suitable for production environments.
+> **✅ Enhanced Security:** The `GEMINI_API_KEY` and `ALLOWED_ORIGINS` are securely stored as **Cloudflare Worker secrets**, preventing their exposure. The `VITE_WORKER_URL` for the frontend is stored as a **GitHub repository secret`. This robust approach is suitable for production environments. The Cloudflare Worker also implements refined guardrails with an adjusted `TRIPWIRE` regex to prevent false positives while maintaining strong protection against sensitive content injection.
 
 ## 🧪 Testing
 
@@ -134,7 +148,7 @@ To ensure the reliability and quality of the application, a comprehensive testin
 
 - **End-to-End (E2E) Testing with Playwright:**
   - Simulates real user interactions in a browser to validate the entire application workflow, including UI, application logic, and API integrations.
-  - Covers key scenarios like general conversation, contact form submission, **rate limiting, and guardrail enforcement.**
+  - Covers key scenarios like general conversation, contact form submission, **rate limiting, and guardrail enforcement.** It also includes comprehensive security tests to validate guardrails against various attack scenarios.
   - All E2E tests are currently passing.
   - **To run E2E tests:**
     ```bash

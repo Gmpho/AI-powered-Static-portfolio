@@ -7,6 +7,9 @@ flowchart LR
   subgraph Cloudflare [Cloudflare]
     B[Worker]
     C[KV RATE_LIMIT_KV]
+    G[Guardrails]
+    T[Tools (projectSearch, displayContactForm)]
+    E[KV PROJECT_EMBEDDINGS_KV]
   end
 
   subgraph GoogleCloud [Google Cloud]
@@ -14,22 +17,33 @@ flowchart LR
   end
 
   %% Connections
-  A -->|POST /chat| B
-  A -->|POST /api/generateEmbedding| B
-  B -->|Enforce rate limits & auth| C
-  B -->|generateContent / embedContent| D
-  D -->|response| B
-  B -->|JSON response| A
+  A -- "POST /chat (prompt, history)" --> B
+  A -- "POST /api/generateEmbedding" --> B
+  B -->|Enforce Rate Limits| C
+  B -->|Apply Guardrails| G
+  G -->|If safe, proceed| B
+  B -->|generateContent (with tools, history)| D
+  D -->|response (text/tool_call)| B
+  B -->|Execute Tool (e.g., projectSearch)| T
+  T -->|Tool Output (projects, notice)| B
+  B -->|Cache Query Embedding| E
+  E -->|Retrieve Project Embeddings| T
+  B -->|Streaming SSE (text/tool_response)| A
 
   %% Styling
-  classDef browser fill:#E8F6FF,stroke:#1E90FF,stroke-width:1.5px,color:#03396c;
-  classDef cloud fill:#E8FFF2,stroke:#05A678,stroke-width:1.5px,color:#064a33;
-  classDef kv fill:#FFF8E8,stroke:#FF9F1C,stroke-width:1px,color:#7a4a00;
-  classDef google fill:#FFF4E6,stroke:#FF8C42,stroke-width:1.5px,color:#663300;
+  classDef browser fill:#E8F6FF;stroke:#1E90FF;stroke-width:1.5px;color:#03396c;
+  classDef cloud fill:#E8FFF2;stroke:#05A678;stroke-width:1.5px;color:#064a33;
+  classDef kv fill:#FFF8E8;stroke:#FF9F1C;stroke-width:1px;color:#7a4a00;
+  classDef google fill:#FFF4E6;stroke:#FF8C42;stroke-width:1.5px;color:#663300;
+  classDef guardrails fill:#FFDDC1;stroke:#FF9933;stroke-width:1.5px;color:#8B4513;
+  classDef tools fill:#E0E0FF;stroke:#8A2BE2;stroke-width:1.5px;color:#4B0082;
 
   class A browser;
   class B cloud;
   class C kv;
   class D google;
+  class G guardrails;
+  class T tools;
+  class E kv;
 
-  linkStyle default stroke:#9aaed8,stroke-width:1px;
+  linkStyle default stroke:#9aaed8;stroke-width:1px;

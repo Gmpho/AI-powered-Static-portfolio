@@ -14,7 +14,9 @@ This project uses GitHub Actions to build and publish the static frontend (GitHu
 - `CF_API_TOKEN` — Cloudflare API token with `Workers:Edit` and `Account:Read` (store safely)
 - `CF_ACCOUNT_ID` — your Cloudflare account id
 - `RATE_LIMIT_KV_ID` — KV namespace ID used by the worker for rate limiting
+- `PROJECT_EMBEDDINGS_KV_ID` — KV namespace ID used by the worker for storing project embeddings.
 - `GEMINI_API_KEY` — Gemini API key for the Worker
+- `EMBEDDING_SECRET` — Secret for authenticating embedding generation requests to the worker.
 - `ALLOWED_ORIGINS` — comma-separated list of allowed origins for CORS (optional)
 
 ## High-level Workflow
@@ -24,7 +26,9 @@ This project uses GitHub Actions to build and publish the static frontend (GitHu
 3. Install and build the frontend (`frontend/`).
 4. Upload the `frontend/dist` artifact (or publish directly to Pages).
 5. Install worker dependencies (`worker/`).
-6. Deploy Cloudflare Worker, ensuring rate limiting and guardrails are active.
+6. **Generate and upload project embeddings to Cloudflare KV.**
+7. **Run Playwright E2E tests as a quality gate.**
+8. Deploy Cloudflare Worker, ensuring rate limiting and guardrails are active.
 
 ## Minimal GitHub Actions snippet
 
@@ -66,10 +70,14 @@ jobs:
                 working-directory: ./worker
                 run: npm ci
 
+            - name: Run Playwright E2E tests
+                run: npx playwright test
+
             - name: Deploy Cloudflare Worker
                 env:
                     CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
                     CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+                    EMBEDDING_SECRET: ${{ secrets.EMBEDDING_SECRET }}
                 run: |
                     npm --prefix worker run build || true
                     npx wrangler publish worker/src/index.ts

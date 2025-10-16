@@ -97,21 +97,21 @@ This document provides a comprehensive, file-by-file review of the AI-Powered St
 *   **Purpose:** The main entry point and router for the Cloudflare Worker. It acts as the central orchestrator for all incoming HTTP requests, handling API calls from the frontend, applying security guardrails, interacting with the Google Gemini API, and dispatching tool calls.
 *   **Key Components:**
     *   **Imports:** Gemini SDK, `rateLimiter`, `guardrails`, tool schemas, `handleToolCall`, `projectData`.
-    *   **`Env` Interface:** Defines worker environment variables and KV bindings.
+    *   **`Env` Interface:** Defines worker environment variables and KV bindings, now including `EMBEDDING_SECRET`.
     *   **Helper Functions:** `jsonResponse`, `createErrorResponse`, `validateGeminiKey`.
     *   **`fetch` Handler:**
         *   **CORS:** Handles `Origin` validation and sets appropriate CORS headers.
         *   **Routing:** Dispatches requests based on `url.pathname` (`/`, `/health`, `/projects`, `/contact`, `/api/generateEmbedding`, `/chat`).
         *   **Rate Limiting:** Applies `checkRateLimit` based on client IP.
         *   **Input Guardrails:** `checkInjection` on prompts.
-        *   **Gemini Setup:** Initializes `GoogleGenerativeAI` with API key, `gemini-2.5-flash` model, and declares `projectSearchSchema`, `displayContactFormSchema` as tools.
+        *   **Gemini Setup:** Initializes `GoogleGenerativeAI` with API key, `gemini-2.0-flash` model, and declares `projectSearchSchema`, `displayContactFormSchema` as tools.
         *   **Chat Session:** `model.startChat` with history and `systemInstruction` (persona).
-        *   **Streaming Response:** Uses `TransformStream` to stream Gemini's response back to the client as SSE.
+        *   **Streaming Response (SSE):** Uses `ReadableStream` to stream Gemini's response back to the client as SSE, including both text and tool execution results.
         *   **Tool Call Handling:** Iterates Gemini's `result.stream`. If `chunk.functionCalls()` are present, calls `handleToolCall`.
-            *   If `handleToolCall` returns a `Response`, it's streamed as `event: toolCallResponse`.
-            *   If `handleToolCall` returns a `Part`, it's sent back to Gemini via `chat.sendMessageStream([toolResponse])` for further processing.
+            *   If `handleToolCall` returns a `Response`, it's streamed directly to the frontend as `event: toolCallResponse`.
+            *   If `handleToolCall` returns a `Part`, it's sent back to Gemini via `chat.sendMessageStream([toolResponse])` for further conversational processing.
         *   **Text Streaming:** Sanitizes `chunk.text()` with `sanitizeOutput` and streams as `data:` SSE.
-        *   **Completion/Error:** Sends `event: completion` or `event: error` SSE.
+        *   **Completion/Error:** Sends `event: completion` or `event: error` SSE. **Improved error handling ensures error messages are always enqueued.**
 *   **Logic Flow:** Centralized request processing, security enforcement, AI interaction, and tool orchestration.
 *   **Interactions:** `rateLimiter.ts`, `guardrails.ts`, `embed.ts`, `tools/projectSearch.ts`, `tools/displayContactForm.ts`, `handleToolCall.ts`, `projectData.ts`, Google Gemini API.
 *   **Best Practices:** API Gateway, serverless, robust security (CORS, rate limiting, injection/sanitization), streaming API (SSE), Gemini function calling.
@@ -123,7 +123,7 @@ This document provides a comprehensive, file-by-file review of the AI-Powered St
 
 *   **Purpose:** Implements a distributed, configurable rate-limiting mechanism using Cloudflare KV.
 *   **Key Components:**
-    *   **`Env` Interface:** Includes `RATE_LIMIT_KV` and configurable `RATE_LIMIT_WINDOW_SECONDS?`, `RATE_LIMIT_MAX_REQUESTS?`.
+    *   **`Env` Interface:** Now consistently imported from `worker/src/index.ts`, including `RATE_LIMIT_KV` and configurable `RATE_LIMIT_WINDOW_SECONDS?`, `RATE_LIMIT_MAX_REQUESTS?`.
     *   **`RateLimitState` Interface:** Defines KV stored state (`count`, `windowStart`).
     *   **Constants:** Default window/max requests, KV expiration grace period.
     *   **`checkRateLimit(ip, env)` Function:**
@@ -159,7 +159,7 @@ This document provides a comprehensive, file-by-file review of the AI-Powered St
 
 *   **Purpose:** Generates vector embeddings for text using the Google Gemini API's `embedding-001` model.
 *   **Key Components:**
-    *   **`Env` Interface:** Includes `GEMINI_API_KEY`.
+    *   **`Env` Interface:** Now consistently imported from `worker/src/index.ts`, including `GEMINI_API_KEY`.
     *   **Constants:** `EMBEDDING_MODEL`, `MAX_TEXT_LENGTH`.
     *   **`generateEmbedding(text, env)` Function:**
         *   **Input Validation:** Checks text length.
@@ -179,9 +179,8 @@ This document provides a comprehensive, file-by-file review of the AI-Powered St
 *   **Key Components:**
     *   **`Project` Interface:** (Imported from `../projectData`).
     *   **`projectSearch(query, env)` Function:**
-        *   **Query Processing:** Lowercases and trims query, extracts keywords.
+        *   **Query Processing:** Generates embedding for the query, uses a pre-processed map for efficient project title matching, and calculates cosine similarity against project embeddings. Filters results based on a configurable `PROJECT_SEARCH_SIMILARITY_THRESHOLD` (with a `DEFAULT_SIMILARITY_THRESHOLD`).
         *   **Generic Query Fallbacks:** Returns all projects for generic/empty queries or if no specific results are found (good UX).
-        *   **Keyword Filtering:** Filters `projects` based on keyword matches in title, summary, description, and tags.
         *   **Returns:** `Project[]`.
     *   **`projectSearchSchema`:** Zod schema defining the tool's name, description, and `query` parameter.
 *   **Logic Flow:** Gemini calls tool with a query, function performs keyword search on static data, returns matching projects.
@@ -230,7 +229,7 @@ This document provides a comprehensive, file-by-file review of the AI-Powered St
 *   **Logic Flow:** Provides data to worker-side tools and endpoints.
 *   **Interactions:** Imported by `worker/src/index.ts` and `worker/src/tools/projectSearch.ts`.
 *   **Best Practices:** Centralized data for worker.
-*   **Considerations:** **Data Duplication** with `frontend/projects.ts`. Recommend a single source of truth (e.g., worker API, shared module, external DB) to avoid maintenance overhead and inconsistencies.
+*   **Considerations:** **Data Duplication** with `frontend/projects.ts`. Recommend a single source of truth (e.g., worker API, shared module, external DB) to avoid maintenance overhead and inconsistencies. This is a key area for future refactoring.
 
 ---
 
@@ -262,11 +261,11 @@ This document provides a comprehensive, file-by-file review of the AI-Powered St
         *   `trace: "on-first-retry"`: Debugging aid.
     *   **`projects` Array:** Configures Chromium browser for testing.
     *   **`webServer` Object:**
-        *   **`command: 'concurrently \"npm run dev\" \"npx wrangler dev worker/src/index.ts\"'`:** Starts frontend and worker dev servers.
+        *   **`command: 'concurrently \"VITE_WORKER_URL=http://127.0.0.1:8787 npm run dev\" \"npx wrangler dev worker/src/index.ts --port 8787\" --kill-others-on-fail'`:** Starts frontend and worker dev servers, ensuring the worker runs on port `8787` and the frontend is aware of its URL.
         *   **`url: "http://localhost:5173/AI-powered-Static-portfolio"`:** Waits for this URL to be ready.
         *   `reuseExistingServer: !process.env.CI`: Optimizes local runs.
         *   `timeout: 300 * 1000`: Server startup timeout.
-*   **Logic Flow:** Defines how E2E tests are discovered, executed, and reported.
+*   **Logic Flow:** Defines how E2E tests are discovered, executed, and reported. **All Playwright E2E tests are now passing, validating the full application stack.**
 *   **Interactions:** Used by `npm run test:e2e` and CI/CD workflows. Starts `vite` and `wrangler` processes.
 *   **Best Practices:** Robust E2E testing, CI/CD integration, flakiness mitigation, server management.
 *   **Considerations:** Broader browser coverage (Firefox, WebKit), authentication mocking.
