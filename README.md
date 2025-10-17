@@ -63,42 +63,33 @@ For a better viewing experience on GitHub, the diagram is rendered from a `.mmd`
 ```mermaid
 flowchart LR
     subgraph "Browser"
-        A[<i class="fas fa-window-maximize"></i> Vite SPA]
+        A[Vite SPA]
     end
 
     subgraph "Cloudflare"
-        B[<i class="fas fa-cloud"></i> Worker]
-        C[(<i class="fas fa-database"></i> KV RATE_LIMIT_KV)]
+        B[Worker]
+        C[KV RATE_LIMIT_KV]
         G[Guardrails]
         T[Tools (projectSearch, displayContactForm)]
         E[KV PROJECT_EMBEDDINGS_KV]
     end
 
     subgraph "Google Cloud"
-        D[<i class="fab fa-google"></i> Gemini API]
+        D[Gemini API]
     end
-
-    %% Styling
-    style A fill:#EBF5FB,stroke:#2E86C1,stroke-width:2px
-    style B fill:#E8F8F5,stroke:#1ABC9C,stroke-width:2px
-    style C fill:#E8F8F5,stroke:#1ABC9C,stroke-width:2px
-    style D fill:#FDF2E9,stroke:#E67E22,stroke-width:2px
-    style G fill:#FFDDC1;stroke:#FF9933;stroke-width:1.5px;color:#8B4513;
-    style T fill:#E0E0FF;stroke:#8A2BE2;stroke-width:1.5px;color:#4B0082;
-    style E fill:#FFF8E8;stroke:#FF9F1C;stroke-width:1px;color:#7a4a00;
 
     %% Connections
     A -- "POST /chat (prompt, history)" --> B
     A -- "POST /api/generateEmbedding" --> B
     B -- "Auth & Rate Limit" --> C
     B -- "Apply Guardrails" --> G
-    G --> "If safe, proceed" --> B
+    G -- "If safe, proceed" --> B
     B -- "generateContent (with tools, history)" --> D
     D -- "response (text/tool_call)" --> B
     B -- "Execute Tool (e.g., projectSearch)" --> T
-    T --> "Tool Output (projects, notice)" --> B
+    T -- "Tool Output (projects, notice)" --> B
     B -- "Cache Query Embedding" --> E
-    E --> "Retrieve Project Embeddings" --> T
+    E -- "Retrieve Project Embeddings" --> T
     B -- "Streaming SSE (text/tool_response)" --> A
 ```
 
