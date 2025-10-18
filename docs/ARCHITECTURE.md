@@ -37,25 +37,7 @@ flowchart LR
   T -->|Tool Output (projects, notice)| B
   B -->|Cache Query Embedding| E
   E -->|Retrieve Project Embeddings| T
-  B -->|Streaming SSE (text/tool_response)| A
-
-  %% Styling
-  classDef browser fill:#E8F6FF;stroke:#1E90FF;stroke-width:1.5px;color:#03396c;
-  classDef cloud fill:#E8FFF2;stroke:#05A678;stroke-width:1.5px;color:#064a33;
-  classDef kv fill:#FFF8E8;stroke:#FF9F1C;stroke-width:1px;color:#7a4a00;
-  classDef google fill:#FFF4E6;stroke:#FF8C42;stroke-width:1.5px;color:#663300;
-  classDef guardrails fill:#FFDDC1;stroke:#FF9933;stroke-width:1.5px;color:#8B4513;
-  classDef tools fill:#E0E0FF;stroke:#8A2BE2;stroke-width:1.5px;color:#4B0082;
-
-  class A browser;
-  class B cloud;
-  class C kv;
-  class D google;
-  class G guardrails;
-  class T tools;
-  class E kv;
-
-  linkStyle default stroke:#9aaed8;stroke-width:1px;
+  B -- "Streaming SSE (text/tool_response)" --> A
 ```
 
 If you prefer a static image, the repository also includes `Architecturemd.svg` (kept for compatibility with tools that don't render Mermaid).
