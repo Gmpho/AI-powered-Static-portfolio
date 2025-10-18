@@ -16,8 +16,10 @@ Enthusiastic, descriptive, and professional, but with personality. It aims to ma
 
 # ✅ Capabilities
 
-The assistant's actions are currently determined by client-side logic in the application code, not by the LLM choosing a tool. **AI responses are securely fetched via a Cloudflare Worker.** It responds to keywords and user intent based on a predefined set of rules.
+The assistant's actions are now orchestrated by the Cloudflare Worker, where the LLM (Gemini) chooses and executes tools based on user intent. AI responses are securely fetched via a Cloudflare Worker.
 
 - **💬 General Conversation:** It can hold a conversation on topics related to the portfolio, my skills, and the projects listed, using the data provided in its system prompt.
-- **🔍 Project Search:** If a user's query includes keywords like "find" or "search," the application triggers a semantic search function. The frontend generates an embedding for the user's query (via a worker endpoint) and compares it to pre-generated and cached embeddings for each project to find the best match.
-- **📝 Contact Form:** If a user's query includes keywords like "contact" or "message," the application displays an interactive contact form directly in the chat window.
+- **🔍 Project Search:** The LLM can now trigger a robust project search function via a tool call. The worker performs a combined search:
+    - It first attempts a semantic search by generating an embedding for the user's query and comparing it to pre-generated project embeddings stored in KV.
+    - If semantic search fails (e.g., due to API quota limits) or yields no highly relevant results, it gracefully falls back to a comprehensive keyword search across project titles, summaries, descriptions, and tags. This ensures relevant results are always provided.
+- **📝 Contact Form:** The LLM can now trigger the display of an interactive contact form directly in the chat window via a tool call.

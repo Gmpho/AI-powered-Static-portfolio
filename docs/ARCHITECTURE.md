@@ -17,7 +17,7 @@ flowchart LR
     B[Worker]
     C[KV RATE_LIMIT_KV]
     G[Guardrails]
-    T[Tools (projectSearch, displayContactForm)]
+    T[Tools \(projectSearch, displayContactForm\)]
     E[KV PROJECT_EMBEDDINGS_KV]
   end
 
