@@ -1,5 +1,9 @@
 # Stage 1: Build the application
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
+
+# Create a non-root user and switch to it
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+USER appuser
 
 # Set the working directory
 WORKDIR /app
@@ -13,20 +17,21 @@ RUN npm install
 # Copy the rest of the application code
 COPY . .
 
-# Declare the build argument for the API key
-ARG VITE_API_KEY
-
-# Set the environment variable for the build
-ENV VITE_API_KEY=$VITE_API_KEY
-
 # Build the project
 RUN npm run build
 
 # Stage 2: Serve the application with Nginx
-FROM nginx:1.21.6-alpine
+FROM nginx:latest-alpine
+
+# Create a non-root user and switch to it
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+USER appuser
 
 # Copy the built files from the builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Change ownership of the Nginx HTML directory to the non-root user
+RUN chown -R appuser:appgroup /usr/share/nginx/html
 
 # Expose port 80
 EXPOSE 80

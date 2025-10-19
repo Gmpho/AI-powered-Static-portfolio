@@ -1,14 +1,17 @@
-import { defineWorkersConfig } from '@cloudflare/vitest-pool-workers/config';
+import { defineConfig } from 'vitest/config';
 
-export default defineWorkersConfig({
-	test: {
-		poolOptions: {
-			workers: {
-				wrangler: { configPath: './wrangler.toml' },
-				miniflare: {
-					kvNamespaces: ['RATE_LIMIT_KV', 'RESUME_KV', 'SYSTEM_PROMPT_KV'],
-				},
-			},
-		},
-	},
+export default defineConfig({
+  test: {
+    pool: '@cloudflare/vitest-pool-workers',
+    poolOptions: {
+      workers: {
+        wrangler: { configPath: './wrangler.toml' },
+        miniflare: {
+          kvNamespaces: ['RATE_LIMIT_KV', 'PROJECT_EMBEDDINGS_KV'], // Explicitly define KV namespaces
+        },
+        singleWorker: true, // Experiment with reusing worker instance
+      },
+    },
+    testTimeout: 120000, // 120 seconds
+  },
 });

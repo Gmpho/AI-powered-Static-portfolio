@@ -33,7 +33,7 @@ This document outlines the comprehensive plan for developing the "Thinking Mode"
 
 *   **Phase 1: Basic Thinking Indicator:** Implement a simple "AI is thinking..." message on the frontend, triggered by the start of a Gemini call. **[COMPLETED]**
 *   **Phase 2: Intermediate Steps (if Gemini supports):** If Gemini provides intermediate steps or tool call planning, integrate these into the SSE stream and display them on the frontend. **[COMPLETED]**
-*   **Phase 3: User Controls:** Add UI elements for users to toggle thinking mode on/off. **[COMPLETED]**
+*   **Phase 3: User Controls:** Add UI elements for users to toggle thinking mode on/off. **[IN PROGRESS]**
 
 ### 5. Testing Strategy (End-to-End):
 

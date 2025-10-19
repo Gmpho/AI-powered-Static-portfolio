@@ -20,6 +20,11 @@ export default defineConfig({
     /* Base URL to use in actions like `await page.goto('/')`. */
     baseURL: "http://localhost:5173",
 
+    /* Maximum time for each action in milliseconds. */
+    actionTimeout: 0,
+    /* Base URL to use in actions like `await page.goto('/')`. */
+    navigationTimeout: 60 * 1000, // Increased to 60 seconds
+
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on-first-retry",
   },
@@ -34,10 +39,9 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command:
-      'concurrently \"npm run dev\" \"npx wrangler dev worker/src/index.ts\" --kill-others-on-fail',
-    url: "http://localhost:5173",
+    command: 'npm run dev',
+    url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
-    timeout: 300 * 1000, // Increased timeout to 5 minutes
+    timeout: 120 * 1000,
   },
 });

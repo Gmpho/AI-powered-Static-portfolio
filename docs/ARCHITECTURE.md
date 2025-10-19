@@ -7,7 +7,7 @@ This document outlines the architecture of the AI-Powered Portfolio. The current
 The diagram below is an inline Mermaid flowchart so GitHub renders it natively. An SVG fallback (`Architecturemd.svg`) is kept in the repo for tools that prefer a static image.
 
 ```mermaid
-flowchart LR
+graph LR
   %% Nodes
   subgraph Browser [Browser - Vite]
     A[Vite SPA]

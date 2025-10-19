@@ -1,4 +1,7 @@
-
+/**
+ * Defines the structure for a thought signature, typically used to convey
+ * intermediate AI thoughts or processing states from the worker.
+ */
 interface ThoughtSignature {
   // Define properties based on what the worker sends
   // For now, let's assume it's a string or an object with a text property
@@ -16,6 +19,9 @@ export interface ChatMessage {
   lastThoughtSignature?: ThoughtSignature; // New property
 }
 
+/**
+ * Defines the overall application state managed by the StateService.
+ */
 interface AppState {
   chatHistory: ChatMessage[];
   isLoading: boolean;
@@ -25,9 +31,16 @@ interface AppState {
 }
 
 // 2. Define the type for our listener functions
+/**
+ * Type definition for a listener function that reacts to changes in the AppState.
+ */
 type StateListener = (state: AppState) => void;
 
 // 3. Create the StateService class (as a Singleton)
+/**
+ * Implements a centralized state management system for the frontend using the Singleton pattern.
+ * Provides methods to update and subscribe to application state changes.
+ */
 class StateService {
   private static instance: StateService;
   private state: AppState = {
@@ -40,6 +53,7 @@ class StateService {
 
   private constructor() {
     // Private constructor to enforce singleton pattern
+    this.loadChatHistoryFromSessionStorage(); // Load history on initialization
   }
 
   public static getInstance(): StateService {
@@ -101,6 +115,7 @@ class StateService {
       this.state.chatHistory.push(newMessage);
     }
     this.notify();
+    this.saveChatHistoryToSessionStorage();
   }
 
   public updateLastMessage(updates: Partial<ChatMessage>) {
@@ -109,19 +124,57 @@ class StateService {
       Object.assign(lastMessage, updates);
       lastMessage.id = `msg-${Date.now()}-${Math.random()}`;
       this.notify();
+      this.saveChatHistoryToSessionStorage();
     }
   }
 
   public clearChatHistory() {
     this.state.chatHistory = [];
     this.notify();
+    this.saveChatHistoryToSessionStorage();
   }
 
-  public loadChatHistory(history: ChatMessage[]) {
-    this.state.chatHistory = history;
-    this.notify();
+  public loadChatHistoryFromSessionStorage() {
+    try {
+      const storedHistory = sessionStorage.getItem('chatHistory');
+      if (storedHistory) {
+        this.state.chatHistory = JSON.parse(storedHistory);
+      } else {
+        // If no history, initialize with a welcome message
+        this.state.chatHistory = [
+          {
+            id: 'welcome-msg',
+            text: 'Hello! I am AG Gift, your AI assistant. How can I help you today?',
+            sender: 'bot',
+            html: false,
+          },
+        ];
+      }
+    } catch (error) {
+      console.error('Error loading chat history from sessionStorage:', error);
+      // Fallback to default welcome message if loading fails
+      this.state.chatHistory = [
+        {
+          id: 'welcome-msg',
+          text: 'Hello! I am AG Gift, your AI assistant. How can I help you today?',
+          sender: 'bot',
+          html: false,
+        },
+      ];
+    }
+  }
+
+  public saveChatHistoryToSessionStorage() {
+    try {
+      sessionStorage.setItem('chatHistory', JSON.stringify(this.state.chatHistory));
+    } catch (error) {
+      console.error('Error saving chat history to sessionStorage:', error);
+    }
   }
 }
 
 // Export a single instance of the service
+/**
+ * The singleton instance of the StateService for managing application state.
+ */
 export const stateService = StateService.getInstance();

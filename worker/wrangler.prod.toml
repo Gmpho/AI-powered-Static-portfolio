@@ -1,7 +1,7 @@
 name = "ai-powered-static-portfolio-worker"
 main = "src/index.ts"
 compatibility_date = "2025-10-01"
-workers_dev = true
+workers_dev = false
 preview_urls = false
 
 # KV Namespace for rate limiting

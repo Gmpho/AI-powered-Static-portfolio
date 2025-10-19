@@ -1,4 +1,5 @@
 import { sendPrompt } from "./chatbot";
+import DOMPurify from 'dompurify';
 
 interface ContactFormWorkerResponse {
   status: "sent" | "failed";
@@ -56,12 +57,7 @@ const themeToggleBtn = document.getElementById("theme-toggle");
 const CHAT_HISTORY_KEY = "chatHistory";
 
 import { projects } from "./projects";
-
-// --- Interfaces ---
-interface ChatMessage {
-  text: string;
-  sender: "user" | "bot";
-}
+import { stateService } from "./stateService"; // Import stateService
 
 /**
  * Renders project cards into the projects container.
@@ -95,6 +91,7 @@ async function renderProjects() {
 function addMessage(
   text: string,
   sender: "user" | "bot" | "loading",
+  isHtml: boolean = false,
 ): HTMLElement {
   const messageEl = document.createElement("div");
   messageEl.classList.add("message", sender);
@@ -104,13 +101,19 @@ function addMessage(
 
   if (sender === "loading") {
     bubble.innerHTML = '<div class="dot-flashing"></div>'; // This is safe as it's a fixed, internal string
-  } else {
-    // Check if the text contains HTML tags. If so, render directly.
-    if (/<[a-z][\s\S]*>/i.test(text)) {
-      bubble.innerHTML = text; // Render HTML directly
+  } else if (sender === "bot" && text === "") {
+    // For streaming bot messages, initially create an empty bubble
+    // Content will be appended by appendMessageChunk
+  }
+  else {
+    // Sanitize the text before rendering to prevent XSS
+    const sanitizedText = DOMPurify.sanitize(text);
+
+    if (isHtml) {
+      bubble.innerHTML = sanitizedText; // Render trusted HTML directly
     } else {
       // Securely parse and render the text content as markdown
-      const lines = text.split("\n");
+      const lines = sanitizedText.split("\n");
       lines.forEach((line, index) => {
         if (index > 0) bubble.appendChild(document.createElement("br"));
 
@@ -139,7 +142,7 @@ function addMessage(
           }
           // Link: [text](url)
           else if (part.startsWith("[") && part.includes("](")) {
-            const linkMatch = part.match(/\[(.*?)\]\((.*?)\)/);
+            const linkMatch = part.match(/\[(.*?)\]\((.*?)\\/);
             if (linkMatch) {
               const a = document.createElement("a");
               a.textContent = linkMatch[1];
@@ -165,60 +168,44 @@ function addMessage(
 }
 
 /**
- * Saves the current chat history to localStorage.
+ * Renders the entire chat history from the state service.
  */
-function saveChatHistory() {
+function renderChatHistory() {
   if (!chatMessages) return;
-  const messages: ChatMessage[] = Array.from(chatMessages.children)
-    .filter(
-      (el) => el.classList.contains("user") || el.classList.contains("bot"),
-    )
-    .map((el) => ({
-      text: (el.querySelector(".message-bubble") as HTMLElement).innerHTML,
-      sender: el.classList.contains("user") ? "user" : "bot",
-    }));
-  sessionStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(messages));
+  chatMessages.innerHTML = ''; // Clear existing messages
+  stateService.getState().chatHistory.forEach(msg => {
+    addMessage(msg.text, msg.sender, msg.html || false);
+  });
 }
 
 /**
- * Loads chat history from sessionStorage and displays it.
+ * Appends a text chunk to the last bot message in the chat window.
+ * This is used for streaming responses.
+ * @param {HTMLElement} messageEl - The message element to append to.
+ * @param {string} chunk - The text chunk to append.
  */
-function loadChatHistory() {
-  const savedHistory = sessionStorage.getItem(CHAT_HISTORY_KEY);
-  if (savedHistory) {
-    const messages: ChatMessage[] = JSON.parse(savedHistory);
-    messages.forEach((msg) => {
-      const messageEl = addMessage(msg.text, msg.sender);
-      // We need to re-set the innerHTML because our addMessage sanitizes/formats it
-      (messageEl.querySelector(".message-bubble") as HTMLElement).innerHTML =
-        msg.text;
-    });
-  } else {
-    // Add a default welcome message if no history exists
-    addBotMessage(
-      "Hello! I'm an AI assistant at G.e.m services automation. Ask me about my projects you see here or ask my contacts form or check about me.",
-    );
+function appendMessageChunk(messageEl: HTMLElement, chunk: string) {
+  const bubble = messageEl.querySelector(".message-bubble");
+  if (bubble) {
+    // Append a space before the chunk if it's not the first chunk and the previous content doesn't end with a space
+    if (bubble.lastChild && bubble.lastChild.nodeType === Node.TEXT_NODE && !bubble.lastChild.textContent?.endsWith(' ')) {
+      bubble.lastChild.textContent += ' ';
+    }
+    // If the last child is a text node, append to it
+    if (bubble.lastChild && bubble.lastChild.nodeType === Node.TEXT_NODE) {
+      bubble.lastChild.textContent += chunk;
+    } else {
+      // Otherwise, create a new text node
+      bubble.appendChild(document.createTextNode(chunk));
+    }
+    // Scroll to bottom
+    if (chatMessages) {
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
   }
 }
 
-/**
- * Adds a message from the bot to the chat window and saves history.
- * @param {string} text - The bot's message text.
- */
-function addBotMessage(text: string) {
-  const messageEl = addMessage(text, "bot");
-  saveChatHistory();
-  return messageEl;
-}
 
-/**
- * Adds a message from the user to the chat window and saves history.
- * @param {string} text - The user's message text.
- */
-function addUserMessage(text: string) {
-  addMessage(text, "user");
-  saveChatHistory();
-}
 
 /**
  * Creates and displays the contact form within the chat window.
@@ -247,8 +234,7 @@ function displayContactForm() {
         </form>
     `;
 
-  const formMessageEl = addMessage(formContainer.outerHTML, "bot"); // Pass outerHTML to addMessage
-  saveChatHistory(); // Save after adding the form
+  const formMessageEl = addMessage(formContainer.outerHTML, "bot", true); // Pass outerHTML to addMessage, indicating it's HTML
 
   const form = formMessageEl.querySelector(
     "#chatbot-contact-form",
@@ -281,13 +267,9 @@ function displayContactForm() {
       formMessageEl.remove();
 
       if (result.status === "sent") {
-        addBotMessage(
-          `Thanks, ${name}! Your message has been sent. I'll be in touch soon.`,
-        );
+        stateService.addMessage({ text: `Thanks, ${name}! Your message has been sent. I'll be in touch soon.`, sender: "bot" });
       } else {
-        addBotMessage(
-          `Sorry, there was an error: ${result.info || "Unknown error"}. Please try again.`,
-        );
+        stateService.addMessage({ text: `Sorry, there was an error: ${result.info || "Unknown error"}. Please try again.`, sender: "bot" });
       }
     });
   }
@@ -302,7 +284,7 @@ async function handleChatSubmit(e: Event) {
   if (!chatInput || chatInput.value.trim() === "") return;
 
   const userMessage = chatInput.value.trim();
-  addUserMessage(userMessage);
+  stateService.addMessage({ text: userMessage, sender: "user" });
   chatInput.value = "";
   sendBtn.disabled = true;
   micBtn.disabled = true;
@@ -327,24 +309,30 @@ async function handleChatSubmit(e: Event) {
     return;
   }
 
-  // Fallback to conversational chat
-  const loadingMessage = addMessage("", "loading");
-  try {
-    const botResponseText = await sendPrompt(userMessage);
-    // The response might contain an error message, but we display it the same way
-    addBotMessage(botResponseText);
-  } catch (error) {
-    // This catch block might be redundant if sendPrompt always returns a string,
-    // but it's good for catching unexpected failures.
-    console.error("Chatbot submission error:", error);
-    addBotMessage(
-      "Oops! I'm having trouble connecting. Please try again in a moment.",
-    );
-  } finally {
-    loadingMessage.remove();
-    sendBtn.disabled = false;
-    micBtn.disabled = false;
-  }
+  const botMessageEl = addMessage("", "bot", false);
+  let fullBotResponse = "";
+
+  await sendPrompt(
+    userMessage,
+    undefined,
+    (chunk) => {
+      appendMessageChunk(botMessageEl, chunk);
+      fullBotResponse += chunk;
+    },
+    () => {
+      const sanitizedResponse = DOMPurify.sanitize(fullBotResponse);
+      stateService.addMessage({ text: sanitizedResponse, sender: "bot" });
+      sendBtn.disabled = false;
+      micBtn.disabled = false;
+    },
+    (error) => {
+      console.error("Chatbot streaming error:", error);
+      botMessageEl.remove();
+      stateService.addMessage({ text: `Oops! I'm having trouble connecting: ${error}. Please try again in a moment.`, sender: "bot" });
+      sendBtn.disabled = false;
+      micBtn.disabled = false;
+    }
+  );
 }
 
 // --- Theme Toggling ---
@@ -357,6 +345,10 @@ function setTheme(theme: "light" | "dark") {
   document.documentElement.setAttribute("data-theme", theme);
   localStorage.setItem("theme", theme);
   if (themeToggleBtn) {
+    themeToggleBtn.innerHTML =
+      theme === "dark"
+        ? '<i class="fas fa-sun"></i>'
+        : '<i class="fas fa-moon"></i>';
     themeToggleBtn.innerHTML =
       theme === "dark"
         ? '<i class="fas fa-sun"></i>'
@@ -425,9 +417,15 @@ themeToggleBtn?.addEventListener("click", handleThemeToggle);
 // When the DOM is fully loaded, render projects and load chat history.
 document.addEventListener("DOMContentLoaded", async () => {
   await renderProjects();
-  loadChatHistory();
+
+  // Subscribe to state changes and perform an initial render
+  stateService.subscribe(() => {
+    renderChatHistory();
+  });
+  renderChatHistory(); // Initial render
+
   // Set initial theme based on saved preference or system setting
-  const savedTheme = sessionStorage.getItem("theme") as "light" | "dark" | null;
+  const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
   if (savedTheme) {
     setTheme(savedTheme);
   } else {

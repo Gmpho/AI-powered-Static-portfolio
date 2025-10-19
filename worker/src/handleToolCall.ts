@@ -1,5 +1,5 @@
 import { FunctionCall, Part } from '@google/generative-ai';
-import { projectSearch } from './tools/projectSearch';
+import { projectSearch, projectSearchArgsSchema } from './tools/projectSearch';
 import { Env } from './index';
 import { jsonResponse, createErrorResponse } from './index';
 
@@ -22,10 +22,14 @@ export async function handleToolCall(
     switch (functionCall.name) {
         case 'projectSearch':
             try {
-                const query = (functionCall.args as { query: string })?.query ?? '';
-                console.log(`handleToolCall: Calling projectSearch with query: "${query}"`);
-                const searchResults = await projectSearch(query, env);
-                console.log(`handleToolCall: projectSearch returned ${searchResults.length} results.`);
+                const parsedArgs = projectSearchArgsSchema.safeParse(functionCall.args);
+                if (!parsedArgs.success) {
+                    return createErrorResponse(`Invalid arguments for projectSearch: ${parsedArgs.error.message}`, 400, corsHeaders);
+                }
+                // Pass the entire parsedArgs.data object to projectSearch
+                console.log(`handleToolCall: Calling projectSearch with args:`, parsedArgs.data);
+                const searchResults = await projectSearch(parsedArgs.data, env);
+                console.log(`handleToolCall: projectSearch returned ${searchResults.projects.length} results.`);
 
                 // Return a Part object containing the tool's output for the model to process.
                 return {
@@ -33,7 +37,8 @@ export async function handleToolCall(
                         name: 'projectSearch',
                         response: {
                             // We wrap the results in a 'projects' property to give the model clear context.
-                            projects: searchResults,
+                            projects: searchResults.projects.length > 0 ? searchResults.projects : "No projects found matching your query.",
+                            notice: searchResults.notice,
                         },
                     },
                 };

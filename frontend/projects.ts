@@ -1,5 +1,6 @@
 // --- Type Definitions ---
 export interface Project {
+  id: string;
   title: string;
   summary: string;
   description: string;
@@ -14,6 +15,7 @@ export interface Project {
  */
 export const projects: Project[] = [
   {
+    id: "ai-powered-portfolio",
     title: "AI-Powered Portfolio",
     summary: "This very portfolio, featuring a Gemini-powered chatbot.",
     description:
@@ -34,6 +36,7 @@ export const projects: Project[] = [
     url: "https://github.com/Gmpho/AI-powered-Static-portfolio",
   },
   {
+    id: "crypto-pulse-ai",
     title: "Crypto Pulse AI",
     summary: "AI-powered trading bot dashboard for Binance.",
     description:
@@ -65,6 +68,7 @@ export const projects: Project[] = [
     url: "https://github.com/Gmpho/Crypto_pulse_AI",
   },
   {
+    id: "student-programming-hub",
     title: "Student Programming Hub",
     summary: "A modern, secure educational platform for students.",
     description:
@@ -84,6 +88,7 @@ export const projects: Project[] = [
     url: "https://github.com/Gmpho/html-crash-course",
   },
   {
+    id: "build-bear-ai-trading-bot",
     title: "Build Bear: AI Trading Bot",
     summary: "AI-powered trading bot for Binance with multi-platform control.",
     description:
@@ -104,6 +109,7 @@ export const projects: Project[] = [
     url: "https://github.com/Gmpho/build-bear",
   },
   {
+    id: "instagram-automation-bot",
     title: "Instagram Automation Bot",
     summary: "Workflow automation bot for Instagram using n8n and dual AIs.",
     description:

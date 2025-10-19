@@ -1,13 +1,13 @@
 # System Design: AI-Powered Portfolio
 
-This document provides a definitive, senior-level engineering overview of the application's architecture, security, and operational decisions that constitute a modern, production-grade AI application.
+This document provides a definitive, senior-level engineering overview of the application's architecture, security, and operational decisions that constitute a modern, production-grade AI application. orchestration bot
 
 ## 1. Core Integration: The Conversational Engine
 
 The Gemini API serves as the **conversational reasoning engine** for the AI Assistant. All natural language understanding and generation capabilities are powered by this integration.
 
 - **SDK:** `@google/genai` (used exclusively on the secure backend).
-- **Model:** `gemini-2.5-flash` (for chat), `embedding-001` (for embeddings). These models are strategically chosen for their optimal balance of high performance, low latency, and cost-effectiveness, making them ideal for a real-time, interactive chat application.
+- **Model:** `gemini-2.0-flash` (for chat), `embedding-001` (for embeddings). These models are strategically chosen for their optimal balance of high performance, low latency, and cost-effectiveness, making them ideal for a real-time, interactive chat application.
 
 ## 2. Architectural Pattern: The Secure Backend for Frontend (BFF)
 
@@ -102,3 +102,8 @@ This section defines the explicit contract for all communication between the fro
   - **429 Too Many Requests:** `{"error": "Too Many Requests"}`
   - **500 Internal Server Error:** `{"error": "Missing server configuration"}`
   - **503 Service Unavailable:** `{"error": "Sorry, I’m having trouble generating the embedding right now."}`
+
+dont for get the toolhandling: Ensure robust error handling, input validation, and clear logging for all tool                    │
+│   interactions. Implement retry mechanisms for transient failures and define fallback strategies for critical tool                 │
+│   operations. Monitor tool usage and performance metrics to identify and address potential bottlenecks or security                 │
+│   vulnerabilities.  

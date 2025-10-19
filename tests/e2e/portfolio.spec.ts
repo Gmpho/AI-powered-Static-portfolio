@@ -32,8 +32,8 @@ test.describe("AI-Powered Portfolio E2E Tests", () => {
     await expect(page.locator(".message.user")).toHaveText("Hello, AI");
     // Wait for the bot's response to appear
     await page.waitForSelector(".message.bot");
-    await expect(page.locator(".message.bot")).toBeVisible();
-    await expect(page.locator(".message.bot")).not.toContainText(
+    await expect(page.locator(".message.bot").last()).toBeVisible();
+    await expect(page.locator(".message.bot").last()).not.toContainText(
       "Sorry, I’m having trouble",
     );
   });
@@ -62,7 +62,7 @@ test.describe("AI-Powered Portfolio E2E Tests", () => {
 
     // Wait for the bot's response to appear and contain the expected text
     const botMessageLocator = page.locator('.message.bot').last();
-    await expect(botMessageLocator).toContainText("Sensitive content detected in prompt.", { timeout: 10000 });
+    await expect(botMessageLocator).toContainText("cannot process that request", { timeout: 10000 });
     
     // Verify that the bot's message bubble does not contain the raw XSS payload as executable HTML
     const botMessageHtml = await botMessageLocator.innerHTML();
@@ -90,5 +90,27 @@ test.describe("AI-Powered Portfolio E2E Tests", () => {
       "data-theme",
       initialTheme === "dark" ? "dark" : "light",
     );
+  });
+
+  test("should respond with project information", async ({ page }) => {
+    await page.locator("#chatbot-fab").click();
+    await page.locator("#chatbot-input").fill("tell me about your projects");
+    await page.locator("#chatbot-send").click();
+
+    const botMessageLocator = page.locator('.message.bot').last();
+    await expect(botMessageLocator).toContainText("AI-Powered Portfolio", { timeout: 10000 });
+    await expect(botMessageLocator).toContainText("Crypto Pulse AI", { timeout: 10000 });
+    await expect(botMessageLocator).toContainText("Student Programming Hub", { timeout: 10000 });
+    
+    await expect(botMessageLocator).toContainText("Instagram Automation Bot", { timeout: 10000 });
+  });
+
+  test("should respond with about information", async ({ page }) => {
+    const aboutSection = page.locator("#about");
+    await expect(aboutSection.locator("h2")).toHaveText("About Me");
+    await expect(aboutSection).toContainText("I am a passionate AI DevOps Engineer");
+
+    await page.locator('nav a[href="#about"]').click();
+    await expect(page).toHaveURL(/.*#about/);
   });
 });

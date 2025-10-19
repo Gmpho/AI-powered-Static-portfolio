@@ -1,13 +1,5 @@
 import { checkRateLimit } from './rateLimiter';
-
-// G.E.M. NOTE (validation): This endpoint must validate incoming 'text' lengths to prevent abuse. It should also ensure a deterministic vector shape is returned. Rationale: Prevents vector service abuse and ensures consistent data output.
-// G.E.M. NOTE (security): This embedding endpoint MUST only be callable by the server (e.g., from the /chat endpoint) and explicitly forbid direct client calls. Rationale: Prevents accidental key exposure and unauthorized use of the embedding service.
-// G.E.M. NOTE (throttle): Implement throttling for embed calls. Reject long lists of texts for embedding and advise using background batching for large volumes. Rationale: Prevents resource exhaustion and ensures fair usage of the embedding service.
-
-interface Env {
-	GEMINI_API_KEY: string;
-	RATE_LIMIT_KV: KVNamespace; // Add RATE_LIMIT_KV to Env interface
-}
+import { Env } from './index'; // Import the comprehensive Env interface
 
 const EMBEDDING_MODEL = 'embedding-001';
 const MAX_TEXT_LENGTH = 1024; // Example max length for embedding input
@@ -73,6 +65,12 @@ export default {
 				},
 			});
 		}
+
+        // Authenticate the request
+        const authHeader = request.headers.get('Authorization');
+        if (!authHeader || authHeader !== `Bearer ${env.EMBEDDING_SECRET}`) {
+            return new Response('Unauthorized', { status: 401 });
+        }
 
 		if (!env.GEMINI_API_KEY) {
 			return new Response('Missing server configuration. Please check your .dev.vars file.', { status: 500 });

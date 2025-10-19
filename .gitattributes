@@ -1,1 +1,1 @@
-Dockerfile text=input
+scripts/secure_generate_embeddings.sh linguist-language=Shell

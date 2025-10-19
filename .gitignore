@@ -75,3 +75,16 @@ option.md
 
 # Test reports
 playwright-report/
+
+# Gemini CLI generated files
+performance-trace.zip
+*.deb
+
+# Local notes and reports
+new emegency.md
+new session.md
+option.md
+REFACTORING_REPORT.md
+SECURITY_AUDIT_REPORT.md
+SYSTEM_DESIGN.md
+commit_message.txt

@@ -1,4 +1,5 @@
-### Security Audit Report
+-### Security Audit Report
++# Security Audit Report
 
 All identified security vulnerabilities have been successfully addressed:
 
@@ -28,6 +29,8 @@ All identified security vulnerabilities have been successfully addressed:
 *   **Robust HTTP Security Headers:** A custom `nginx.conf` has been added to the Docker image, configuring several HTTP security headers including `X-Frame-Options`, `X-Content-Type-Options`, `X-XSS-Protection`, `Referrer-Policy`, `Permissions-Policy`, and `Content-Security-Policy`. This significantly enhances the application's protection against various client-side attacks.
 
 *   **Enhanced Client-Side Error Handling:** Reviewed and confirmed that client-side error handling in `frontend/chatbot.ts` and `frontend/index.ts` is robust, providing user-friendly and generic error messages without exposing sensitive internal details.
+
+*   **Refined Guardrails:** The `TRIPWIRE` regex in `worker/src/guardrails.ts` has been adjusted to prevent false positives, ensuring legitimate user queries are not blocked while still protecting against sensitive content injection.
 
 **Future Considerations:**
 

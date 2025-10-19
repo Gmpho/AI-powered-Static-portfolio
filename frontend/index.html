@@ -14,6 +14,10 @@
       referrerpolicy="no-referrer"
     />
 
+    <!-- Preload FontAwesome webfonts to improve rendering performance -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/webfonts/fa-brands-400.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
     <script>
       // Set theme on initial load to prevent FOUC (Flash of Unstyled Content)
       (function () {
@@ -21,10 +25,14 @@
         const prefersDark = window.matchMedia(
           "(prefers-color-scheme: dark)",
         ).matches;
+        console.log(`index.html script: Saved theme from localStorage: ${theme}`);
+        console.log(`index.html script: System prefers dark mode: ${prefersDark}`);
         if (theme === "dark" || (!theme && prefersDark)) {
           document.documentElement.setAttribute("data-theme", "dark");
+          console.log("index.html script: Setting theme to dark");
         } else {
           document.documentElement.setAttribute("data-theme", "light");
+          console.log("index.html script: Setting theme to light");
         }
       })();
     </script>
@@ -63,7 +71,7 @@
         <section id="about" class="about-me">
           <div class="about-me-content container">
             <img
-              src="https://i.pravatar.cc/200?u=giftmpho"
+              src="profile-photo.jpg"
               alt="A professional headshot of Gift Mpho."
               class="profile-photo"
             />

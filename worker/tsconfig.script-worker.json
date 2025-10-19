@@ -1,17 +1,20 @@
 {
+  /**
+   * TypeScript configuration for worker-side scripts, specifically for generating embeddings.
+   * This configuration is optimized for Node.js environments and script execution.
+   */
   "compilerOptions": {
     "target": "ES2022",
     "module": "CommonJS", // Compile worker files to CommonJS for the script
-    "moduleResolution": "node",
-    "outDir": "../dist/worker-for-script", // Output to a temporary directory
-    "rootDir": "./src", // Source files are in worker/src
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
+        "moduleResolution": "node",
+        "outDir": "../dist/worker-for-script", // Output to a temporary directory
+    "rootDir": "./", // Assuming the script is run from the worker directory, or adjust to "../scripts" if that's the intended root for the script.
+        "esModuleInterop": true,    "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,
     "declaration": true, // Generate declaration files
     "types": ["node", "@cloudflare/workers-types"]
   },
-  "include": ["./src/**/*.ts"],
+  "include": ["../scripts/generateEmbeddings.ts"],
   "exclude": ["./src/**/*.spec.ts"]
 }

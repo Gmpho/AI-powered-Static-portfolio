@@ -15,11 +15,15 @@
     "concurrently": "^9.2.1"
   },
   "devDependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@playwright/test": "^1.55.1",
-    "@types/node": "latest",
-    "typescript": "latest",
-    "vite": "latest",
-    "wrangler": "^4.42.0"
+    "@types/dotenv": "^8.2.3",
+    "@types/node": "^24.7.2",
+    "dotenv": "^17.2.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.10",
+    "wrangler": "^4.43.0"
   },
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "latest"

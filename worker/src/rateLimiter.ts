@@ -1,16 +1,19 @@
-/**
- * Represents the binding for the KV namespace where rate limit data is stored.
- * This must be configured in your `wrangler.toml` file.
- */
-interface Env {
-	RATE_LIMIT_KV: KVNamespace;
-}
-
+import { Env } from './index';
 const RATE_LIMIT_WINDOW_SECONDS = 60; // 1 minute
 const MAX_REQUESTS_PER_WINDOW = 10; // Max 10 requests per minute per IP
 
 /**
  * Checks if a given IP address has exceeded the rate limit.
+ *
+ * IMPORTANT SECURITY NOTE:
+ * This rate limiting implementation is based on client IP addresses. While it provides
+ * a basic layer of protection, IP-based rate limiting can be bypassed by sophisticated
+ * attackers using techniques like IP spoofing, botnets, or proxy services.
+ *
+ * For more robust rate limiting, consider implementing a scheme based on:
+ * 1. Authenticated user IDs.
+ * 2. Unique device identifiers.
+ * 3. More advanced behavioral analysis.
  *
  * This function uses Cloudflare's KV store to track request timestamps for each IP.
  * It is designed to be called from a Cloudflare Worker.
@@ -21,13 +24,10 @@ const MAX_REQUESTS_PER_WINDOW = 10; // Max 10 requests per minute per IP
  *          If not allowed, it includes a `retryAfter` value in seconds.
  */
 export async function checkRateLimit(ip: string, env: Env): Promise<{ allowed: boolean; retryAfter?: number }> {
-	if (!env.RATE_LIMIT_KV) {
-		// If KV is not configured, default to allowing the request.
-		// This ensures the application remains functional, though without rate limiting.
-		console.warn('RATE_LIMIT_KV namespace not found. Rate limiting is disabled.');
-		return { allowed: true };
-	}
-
+	        if (!env.RATE_LIMIT_KV) {
+	               console.warn('RATE_LIMIT_KV namespace not found. Rate limiting is disabled.');
+	               return { allowed: true };
+	        }
 	const now = Date.now();
 	const windowStart = now - RATE_LIMIT_WINDOW_SECONDS * 1000;
 

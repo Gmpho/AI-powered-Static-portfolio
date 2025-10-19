@@ -1,10 +1,17 @@
+/**
+ * Service responsible for performing vector search operations, such as calculating cosine similarity
+ * and finding nearest neighbors among project embeddings.
+ */
 export class VectorSearchService {
 
     /**
      * Calculates the cosine similarity between two vectors.
-     * @param vec1 The first vector.
-     * @param vec2 The second vector.
-     * @returns The cosine similarity, a value between -1 and 1.
+     * Cosine similarity measures the cosine of the angle between two vectors,
+     * indicating their directional similarity.
+     * @param vec1 The first vector (array of numbers).
+     * @param vec2 The second vector (array of numbers).
+     * @returns The cosine similarity, a value between -1 (opposite) and 1 (identical direction).
+     * @throws {Error} If the input vectors are of different lengths.
      */
     public cosineSimilarity(vec1: number[], vec2: number[]): number {
         if (vec1.length !== vec2.length) {
@@ -32,8 +39,8 @@ export class VectorSearchService {
     }
 
     /**
-     * Finds the k nearest neighbors (project IDs) to a query embedding.
-     * @param queryEmbedding The embedding of the search query.
+     * Finds the k nearest neighbors (project IDs) to a query embedding based on cosine similarity.
+     * @param queryEmbedding The embedding vector of the search query.
      * @param projectEmbeddings A Map where keys are project IDs and values are their embedding vectors.
      * @param k The number of nearest neighbors to return.
      * @returns An array of project IDs, sorted by similarity in descending order.
