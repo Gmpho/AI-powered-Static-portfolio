@@ -39,6 +39,8 @@ jobs:
         with:
           node-version: lts/*
           cache: 'npm'
+      - name: Install Root Dependencies
+        run: npm install
       - name: Install Frontend Dependencies
         run: npm install
         working-directory: frontend

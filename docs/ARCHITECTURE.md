@@ -9,35 +9,35 @@ The diagram below is an inline Mermaid flowchart so GitHub renders it natively. 
 ```mermaid
 graph LR
   %% Nodes
-  subgraph Browser [Browser - Vite]
-    A[Vite SPA]
+  subgraph Browser ["Browser - Vite"]
+    A["Vite SPA"]
   end
 
-  subgraph Cloudflare [Cloudflare]
-    B[Worker]
-    C[KV RATE_LIMIT_KV]
-    G[Guardrails]
-    T[Tools]
-    E[KV PROJECT_EMBEDDINGS_KV]
+  subgraph Cloudflare ["Cloudflare"]
+    B["Worker"]
+    C["KV RATE_LIMIT_KV"]
+    G["Guardrails"]
+    T["Tools"]
+    E["KV PROJECT_EMBEDDINGS_KV"]
   end
 
-  subgraph GoogleCloud [Google Cloud]
-    D[Gemini API]
+  subgraph GoogleCloud ["Google Cloud"]
+    D["Gemini API"]
   end
 
   %% Connections
-  A -- "POST /chat (prompt, history)" --> B
-  A -- "POST /api/generateEmbedding" --> B
-  B -->|Enforce Rate Limits| C
-  B -->|Apply Guardrails| G
-  G -->|If safe, proceed| B
-  B -->|generateContent (with tools, history)| D
-  D -->|response (text/tool_call)| B
-  B -->|Execute Tool (e.g., projectSearch)| T
-  T -->|Tool Output (projects, notice)| B
-  B -->|Cache Query Embedding| E
-  E -->|Retrieve Project Embeddings| T
-  B -- "Streaming SSE (text/tool_response)" --> A
+  A -->|"POST /chat (prompt, history)"| B
+  A -->|"POST /api/generateEmbedding"| B
+  B -->|"Enforce Rate Limits"| C
+  B -->|"Apply Guardrails"| G
+  G -->|"If safe, proceed"| B
+  B -->|"generateContent (with tools, history)"| D
+  D -->|"response (text/tool_call)"| B
+  B -->|"Execute Tool (e.g., projectSearch)"| T
+  T -->|"Tool Output (projects, notice)"| B
+  B -->|"Cache Query Embedding"| E
+  E -->|"Retrieve Project Embeddings"| T
+  B -->|"Streaming SSE (text/tool_response)"| A
 ```
 
 If you prefer a static image, the repository also includes `Architecturemd.svg` (kept for compatibility with tools that don't render Mermaid).
