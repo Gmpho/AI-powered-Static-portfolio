@@ -1,93 +1,62 @@
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
+name: Deploy to GitHub Pages
 
 on:
-  # Runs on pushes targeting the default branch
   push:
-    branches: ["main"]
+    branches:
+      - main
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
-# Sets the GITHUB_TOKEN permissions to allow deployment to GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Allow one concurrent deployment
 concurrency:
   group: "pages"
   cancel-in-progress: true
 
 jobs:
-  deploy-worker:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    outputs:
-      worker_url: ${{ steps.deploy_worker_step.outputs.url }}
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
-      - name: Set up Node
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: lts/*
-          cache: "npm"
-      - name: Install worker dependencies
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install Worker Dependencies
         run: npm install --prefix worker
-      - name: Deploy worker
-        id: deploy_worker_step
+
+      - name: Deploy Worker
+        id: deploy_worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: "deploy worker/src/index.ts"
-        env:
-          RATE_LIMIT_KV_ID: ${{ secrets.RATE_LIMIT_KV_ID }}
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
-      - name: Validate Gemini API Key
-        run: |
-          WORKER_URL="${{ steps.deploy_worker_step.outputs.url }}"
-          HEALTH_STATUS=$(curl -s "$WORKER_URL/health" | jq -r '.geminiKey')
-          if [ "$HEALTH_STATUS" == "invalid" ]; then
-            echo "Error: Gemini API Key is invalid after deployment!"
-            exit 1
-          else
-            echo "Gemini API Key validated successfully."
-          fi
 
-  deploy:
-    needs: deploy-worker
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-      - name: Clean build environment
-        run: |
-          rm -rf node_modules
-          rm -rf dist
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-          cache: "npm"
-      - name: Install dependencies
-        run: npm ci
-      - name: Build
+      - name: Install Frontend Dependencies
+        run: npm install
+
+      - name: Build Frontend
         run: npm run build
-        working-directory: .
         env:
-          VITE_WORKER_URL: ${{ needs.deploy-worker.outputs.worker_url }}
+          VITE_WORKER_URL: ${{ steps.deploy_worker.outputs.url }}
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
+
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v3
         with:
-          path: "./dist"
+          path: './dist'
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
