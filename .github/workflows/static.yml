@@ -1,4 +1,4 @@
-name: Deploy static content to Pages
+name: Deploy Fullstack to GitHub Pages
 
 on:
   push:
@@ -15,32 +15,50 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Setup Node.js
+
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
-      - name: Install dependencies
+
+      - name: Install Worker Dependencies
+        run: npm install --prefix worker
+
+      - name: Deploy Worker
+        id: deploy_worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: "deploy worker/src/index.ts"
+        env:
+          RATE_LIMIT_KV_ID: ${{ secrets.RATE_LIMIT_KV_ID }} # Ensure this is passed if needed
+
+      - name: Install Frontend Dependencies
         run: npm install
-      - name: Build
+
+      - name: Build Frontend
         run: npm run build
+        env:
+          VITE_WORKER_URL: ${{ steps.deploy_worker.outputs.url }}
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './dist'
+          path: './dist' # This should be the output of your Vite build
 
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
