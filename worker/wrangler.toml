@@ -3,6 +3,6 @@ main = "src/index.ts"
 compatibility_date = "2025-10-01"
 
 kv_namespaces = [
-  { binding = "RATE_LIMIT_KV", id = "YOUR_KV_NAMESPACE_ID" },
-  { binding = "PROJECT_EMBEDDINGS_KV", id = "YOUR_PROJECT_EMBEDDINGS_KV_ID" }
+  { binding = "RATE_LIMIT_KV", id = "868d5699ded349d9a26e432c7bdaa3ed" },
+  { binding = "PROJECT_EMBEDDINGS_KV", id = "a211052b2b5c4566b083a6dbcfad8728" }
 ]
