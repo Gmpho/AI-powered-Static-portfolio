@@ -18,10 +18,9 @@ Follow the sections below in order.
 **Secrets and GitHub repository settings**
 Add the following repository secrets (Settings → Secrets → Actions):
 
-- `CF_API_TOKEN` — Cloudflare API token (least privilege: Workers publish + KV read/write)
-- `CF_ACCOUNT_ID` — Cloudflare Account ID
-- `RATE_LIMIT_KV_ID` — KV Namespace ID used by the worker for rate limiting
-- `GEMINI_API_KEY` — Gemini API key for the Worker
+- `CLOUDFLARE_API_TOKEN` — Cloudflare API token with `Workers:Edit` and `Account:Read` permissions
+- `CLOUDFLARE_ACCOUNT_ID` — Your Cloudflare Account ID
+- `VITE_WORKER_URL` — The URL of your deployed Cloudflare Worker (used by the frontend build)
 
 Do not commit secrets or production keys to the repository.
 
@@ -72,73 +71,7 @@ npm --prefix frontend run build
 
 - Quick manual publish (not recommended for CI): push `frontend/dist` to `gh-pages` branch.
 
-- Recommended: use GitHub Actions to build and publish automatically. Example workflow to place at `.github/workflows/deploy.yml`:
-
-```yaml
-name: Build & Deploy
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  build-and-deploy-frontend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - name: Install frontend deps
-        run: npm ci
-        working-directory: frontend
-      - name: Build frontend
-        run: npm run build
-        working-directory: frontend
-      - name: Upload artifact for Pages
-        uses: actions/upload-pages-artifact@v1
-        with:
-          path: frontend/dist
-
-  deploy-frontend:
-    needs: build-and-and-deploy-frontend
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-      contents: read
-    steps:
-      - name: Deploy to Pages
-        uses: actions/deploy-pages@v1
-
-  deploy-worker:
-    name: Deploy Cloudflare Worker
-    needs: deploy-frontend
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - name: Install worker deps
-        run: npm ci
-        working-directory: worker
-      - name: Publish Worker using Wrangler
-        uses: cloudflare/wrangler-action@v1
-        with:
-          apiToken: ${{ secrets.CF_API_TOKEN }}
-          workingDirectory: ./worker
-        env:
-          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-          RATE_LIMIT_KV_ID: ${{ secrets.RATE_LIMIT_KV_ID }}
-```
-
-Notes:
-
-- The workflow builds the frontend, publishes to GitHub Pages, then deploys the Worker.
-- Put `ALLOWED_ORIGINS`/`GEMINI_API_KEY` into Cloudflare secrets (via `wrangler secret put` in CI or interactive `npx wrangler secret put`).
+- - Recommended: use GitHub Actions to build and publish automatically. Refer to `.github/workflows/static.yml` for the current, working workflow.
 
 **4) Worker `wrangler.toml` template**
 Keep this file simple and avoid committing production tokens. Use environment interpolation in CI.
@@ -148,24 +81,21 @@ Example `worker/wrangler.toml`:
 ```toml
 name = "my-portfolio-worker"
 main = "src/index.ts"
-compatibility_date = "2025-09-24"
+compatibility_date = "2025-10-01"
 
-account_id = "${CF_ACCOUNT_ID}"
-
-# Bind the KV namespace by id from secrets
 kv_namespaces = [
-  { binding = "RATE_LIMIT_KV", id = "${RATE_LIMIT_KV_ID}" }
+  { binding = "RATE_LIMIT_KV", id = "YOUR_RATE_LIMIT_KV_ID" },
+  { binding = "PROJECT_EMBEDDINGS_KV", id = "YOUR_PROJECT_EMBEDDINGS_KV_ID" }
 ]
 
 [build]
 command = "npm ci && npm run build"
 
-
 [env.production]
 # production specific overrides (if needed)
 ```
 
-In CI you can set the env mapping for `CF_ACCOUNT_ID` and `RATE_LIMIT_KV_ID` via the workflow's `env` block or by passing them to the `wrangler-action`.
+In CI you can set the env mapping for `CLOUDFLARE_ACCOUNT_ID`, `RATE_LIMIT_KV_ID`, and `PROJECT_EMBEDDINGS_KV_ID` via GitHub Actions secrets.
 
 **5) Managing Worker secrets (GEMINI_API_KEY, ALLOWED_ORIGINS)**
 During interactive local development:

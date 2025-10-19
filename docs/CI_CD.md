@@ -11,76 +11,116 @@ This project uses GitHub Actions to build and publish the static frontend (GitHu
 ## Recommended Secrets (GitHub repository secrets)
 
 - `GITHUB_TOKEN` (provided by Actions) — used for artifact operations
-- `CF_API_TOKEN` — Cloudflare API token with `Workers:Edit` and `Account:Read` (store safely)
-- `CF_ACCOUNT_ID` — your Cloudflare account id
-- `RATE_LIMIT_KV_ID` — KV namespace ID used by the worker for rate limiting
-- `PROJECT_EMBEDDINGS_KV_ID` — KV namespace ID used by the worker for storing project embeddings.
-- `GEMINI_API_KEY` — Gemini API key for the Worker
-- `EMBEDDING_SECRET` — Secret for authenticating embedding generation requests to the worker.
-- `ALLOWED_ORIGINS` — comma-separated list of allowed origins for CORS (optional)
+- `CLOUDFLARE_API_TOKEN` — Cloudflare API token with `Workers:Edit` and `Account:Read` permissions (store safely)
+- `CLOUDFLARE_ACCOUNT_ID` — Your Cloudflare account ID
+- `VITE_WORKER_URL` — The URL of your deployed Cloudflare Worker (used by the frontend build)
+
 
 ## High-level Workflow
 
-1. Checkout the repository.
-2. Set up Node (LTS) and cache dependencies.
-3. Install and build the frontend (`frontend/`).
-4. Upload the `frontend/dist` artifact (or publish directly to Pages).
-5. Install worker dependencies (`worker/`).
-6. **Generate and upload project embeddings to Cloudflare KV.**
-7. **Run Playwright E2E tests as a quality gate.**
-8. Deploy Cloudflare Worker, ensuring rate limiting and guardrails are active.
+This workflow consists of two main jobs:
+
+### 1. `deploy` Job (Frontend Deployment)
+
+1.  Checkout the repository.
+2.  Clean the build environment (`node_modules`, `dist`).
+3.  Set up Node.js (LTS).
+4.  Install root dependencies (`npm install`).
+5.  Install frontend dependencies (`npm install` in `frontend/`).
+6.  Build the frontend (`npm run build`), injecting `VITE_WORKER_URL` from secrets.
+7.  Set up GitHub Pages.
+8.  Upload the built frontend artifact (`./dist`).
+9.  Deploy the frontend to GitHub Pages.
+
+### 2. `deploy-worker` Job (Worker Deployment)
+
+This job `needs: deploy`, meaning it runs *after* the frontend has been deployed.
+
+1.  Checkout the repository.
+2.  Set up Node.js (LTS).
+3.  Install worker dependencies (`npm install --prefix worker`).
+4.  Deploy the Cloudflare Worker using `cloudflare/wrangler-action`.
+
 
 ## Minimal GitHub Actions snippet
 
 Below is a compact example you can adapt. Place it as `.github/workflows/deploy.yml`.
 
 ```yaml
-name: Deploy
+name: Deploy static content to Pages
 
 on:
-    push:
-        branches: [ main ]
+  push:
+    branches: ['main']
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
 
 jobs:
-    build-and-deploy:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout
-                uses: actions/checkout@v4
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Clean build environment
+        run: |
+          rm -rf node_modules
+          rm -rf dist
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm'
+      - name: Install Root Dependencies
+        run: npm install
+      - name: Install Frontend Dependencies
+        run: npm install
+        working-directory: frontend
+      - name: Build
+        run: npm run build
+        working-directory: .
+        env:
+          VITE_WORKER_URL: ${{ secrets.VITE_WORKER_URL }}
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: './dist'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
-            - name: Setup Node
-                uses: actions/setup-node@v4
-                with:
-                    node-version: 18
-
-            - name: Install frontend deps
-                working-directory: ./frontend
-                run: npm ci
-
-            - name: Build frontend
-                working-directory: ./frontend
-                run: npm run build
-
-            - name: Publish to GitHub Pages
-                uses: peaceiris/actions-gh-pages@v3
-                with:
-                    deploy_dir: ./frontend/dist
-
-            - name: Install worker deps
-                working-directory: ./worker
-                run: npm ci
-
-            - name: Run Playwright E2E tests
-                run: npx playwright test
-
-            - name: Deploy Cloudflare Worker
-                env:
-                    CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-                    CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-                    EMBEDDING_SECRET: ${{ secrets.EMBEDDING_SECRET }}
-                run: |
-                    npm --prefix worker run build || true
-                    npx wrangler publish worker/src/index.ts
+  deploy-worker:
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm'
+      - name: Install worker dependencies
+        run: npm install --prefix worker
+      - name: Deploy worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: 'deploy worker/src/index.ts'
 ```
 
 Notes:

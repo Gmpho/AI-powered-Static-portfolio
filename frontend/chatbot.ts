@@ -10,7 +10,7 @@ export async function sendPrompt(
   onError: (error: string) => void, // Callback for errors
   toolResponse?: any, // Optional tool response to send
 ): Promise<void> {
-  const workerUrl = import.meta.env.VITE_WORKER_URL;
+  const workerUrl = import.meta.env.VITE_WORKER_URL?.replace(/\/$/, '');
 
   if (!workerUrl) {
     const errorMessage =
