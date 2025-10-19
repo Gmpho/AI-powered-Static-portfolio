@@ -88,3 +88,5 @@ REFACTORING_REPORT.md
 SECURITY_AUDIT_REPORT.md
 SYSTEM_DESIGN.md
 commit_message.txt
+test_embedding.js
+scripts/*.js
