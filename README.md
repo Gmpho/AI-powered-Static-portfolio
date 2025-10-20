@@ -235,3 +235,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 For questions or feedback, please open an issue or contact me directly.
 
 <!-- Deployed: 2025-09-22 -->
+<!-- Trigger re-deployment -->
