@@ -73,6 +73,16 @@ async function validateGeminiKey(apiKey: string): Promise<boolean> {
 
 export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+		console.log('--- CORS Check ---');
+		const origin = request.headers.get('Origin') || '';
+		console.log('Request Origin:', origin);
+		const allowedOriginsStr = env.ALLOWED_ORIGINS || 'http://localhost:5173,http://127.0.0.1:5173';
+		console.log('ALLOWED_ORIGINS Secret:', allowedOriginsStr);
+		const allowedOrigins = allowedOriginsStr.split(',');
+		console.log('Allowed Origins Array:', allowedOrigins);
+		const isAllowed = allowedOrigins.includes(origin);
+		console.log('Is Origin Allowed?', isAllowed);
+		console.log('--- End CORS Check ---');
 const origin = request.headers.get('Origin') || '';
 		const allowedOrigins = (env.ALLOWED_ORIGINS || 'http://localhost:5173,http://127.0.0.1:5173').split(',');
 
