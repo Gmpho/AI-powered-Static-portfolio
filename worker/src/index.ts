@@ -73,11 +73,8 @@ async function validateGeminiKey(apiKey: string): Promise<boolean> {
 
 export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-const corsHeaders = {
-			'Access-Control-Allow-Origin': '*', // Allow all origins
-			'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-			'Access-Control-Allow-Headers': 'Content-Type',
-		};
+const origin = request.headers.get('Origin') || '';
+		const allowedOrigins = (env.ALLOWED_ORIGINS || 'http://localhost:5173,http://127.0.0.1:5173').split(',');
 
 		const securityHeaders: HeadersInit = {
 			'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.cloudflare.com;",
@@ -86,12 +83,19 @@ const corsHeaders = {
 			'Referrer-Policy': 'no-referrer-when-downgrade',
 			'Cross-Origin-Embedder-Policy': 'require-corp',
 		};
+		const corsHeaders: HeadersInit = {};
+		if (allowedOrigins.includes(origin)) {
+			corsHeaders['Access-Control-Allow-Origin'] = origin;
+			corsHeaders['Access-Control-Allow-Methods'] = 'POST, GET, OPTIONS';
+			corsHeaders['Access-Control-Allow-Headers'] = 'Content-Type';
+			corsHeaders['Access-Control-Max-Age'] = '86400'; // Cache preflight requests for 24 hours
+		} else if (origin && !allowedOrigins.includes(origin)) {
+			// Explicitly block requests from disallowed origins
+			return createErrorResponse('Forbidden', 403, corsHeaders, securityHeaders);
+		}
 
 		if (request.method === 'OPTIONS') {
-			return new Response(null, {
-				status: 204,
-				headers: corsHeaders,
-			});
+			return new Response(null, { headers: corsHeaders });
 		}
 
 		const url = new URL(request.url);
