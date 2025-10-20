@@ -83,8 +83,6 @@ export default {
 		const isAllowed = allowedOrigins.includes(origin);
 		console.log('Is Origin Allowed?', isAllowed);
 		console.log('--- End CORS Check ---');
-const origin = request.headers.get('Origin') || '';
-		const allowedOrigins = (env.ALLOWED_ORIGINS || 'http://localhost:5173,http://127.0.0.1:5173').split(',');
 
 		const securityHeaders: HeadersInit = {
 			'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.cloudflare.com;",
