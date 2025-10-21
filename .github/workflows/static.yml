@@ -57,8 +57,8 @@ jobs:
             exit 1
           fi
           # Put secrets into the account + use the production wrangler config explicitly
-          echo "$GEMINI_API_KEY" | npx wrangler secret put GEMINI_API_KEY --account-id "$CLOUDFLARE_ACCOUNT_ID" -c worker/wrangler.prod.toml --env production
-          echo "$ALLOWED_ORIGINS" | npx wrangler secret put ALLOWED_ORIGINS --account-id "$CLOUDFLARE_ACCOUNT_ID" -c worker/wrangler.prod.toml --env production
+          echo "$GEMINI_API_KEY" | wrangler secret put GEMINI_API_KEY --name ai-powered-static-portfolio-worker -c worker/wrangler.prod.toml --env production
+          echo "$ALLOWED_ORIGINS" | wrangler secret put ALLOWED_ORIGINS --name ai-powered-static-portfolio-worker -c worker/wrangler.prod.toml --env production
 
       - name: Deploy Worker (prod)
         id: deploy_worker_step
