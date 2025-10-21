@@ -38,38 +38,37 @@ jobs:
       - name: Install Wrangler Globally
         run: npm install -g wrangler
 
-      - name: Set Secrets for Wrangler
+      - name: Validate Cloudflare token
+        run: |
+          echo "Checking Cloudflare token and account..."
+          npx wrangler whoami
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Set Secrets for Wrangler (prod)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           ALLOWED_ORIGINS: ${{ secrets.ALLOWED_ORIGINS }}
         run: |
-          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
-            echo "Error: CLOUDFLARE_API_TOKEN secret is not configured in the repository." >&2
-            echo "Add it at Settings → Secrets and variables → Actions and retry." >&2
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID missing" >&2
             exit 1
           fi
-          echo "DEBUG: CLOUDFLARE_ACCOUNT_ID is $CLOUDFLARE_ACCOUNT_ID"
-          if [ -z "$GEMINI_API_KEY" ]; then
-            echo "GEMINI_API_KEY is missing" >&2
-            exit 1
-          fi
-          if [ -z "$ALLOWED_ORIGINS" ]; then
-            echo "ALLOWED_ORIGINS is missing" >&2
-            exit 1
-          fi
-          echo "$GEMINI_API_KEY" | wrangler secret put GEMINI_API_KEY -c worker/wrangler.toml
-          echo "$ALLOWED_ORIGINS" | wrangler secret put ALLOWED_ORIGINS -c worker/wrangler.toml
+          # Put secrets into the account + use the production wrangler config explicitly
+          echo "$GEMINI_API_KEY" | npx wrangler secret put GEMINI_API_KEY --account-id "$CLOUDFLARE_ACCOUNT_ID" -c worker/wrangler.prod.toml --env production
+          echo "$ALLOWED_ORIGINS" | npx wrangler secret put ALLOWED_ORIGINS --account-id "$CLOUDFLARE_ACCOUNT_ID" -c worker/wrangler.prod.toml --env production
 
-      - name: Deploy Worker
+      - name: Deploy Worker (prod)
         id: deploy_worker_step
         env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           RATE_LIMIT_KV_ID: ${{ secrets.RATE_LIMIT_KV_ID }}
           PROJECT_EMBEDDINGS_KV_ID: ${{ secrets.PROJECT_EMBEDDINGS_KV_ID }}
         run: |
-          # Deploy with correct --var syntax (use =). Secrets already pushed above.
-          wrangler deploy worker/src/index.ts --name ai-powered-static-portfolio-worker --var RATE_LIMIT_KV_ID=${RATE_LIMIT_KV_ID} --var PROJECT_EMBEDDINGS_KV_ID=${PROJECT_EMBEDDINGS_KV_ID}
+          npx wrangler deploy worker/src/index.ts --account-id "$CLOUDFLARE_ACCOUNT_ID" -c worker/wrangler.prod.toml --env production --var RATE_LIMIT_KV_ID=${RATE_LIMIT_KV_ID} --var PROJECT_EMBEDDINGS_KV_ID=${PROJECT_EMBEDDINGS_KV_ID}
 
   deploy-frontend:
     needs: deploy-worker
