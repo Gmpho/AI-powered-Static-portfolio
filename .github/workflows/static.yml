@@ -48,8 +48,8 @@ jobs:
             echo "ALLOWED_ORIGINS is missing" >&2
             exit 1
           fi
-          echo "$GEMINI_API_KEY" | wrangler secret put GEMINI_API_KEY
-          echo "$ALLOWED_ORIGINS" | wrangler secret put ALLOWED_ORIGINS
+          echo "$GEMINI_API_KEY" | wrangler secret put GEMINI_API_KEY -c worker/wrangler.toml
+          echo "$ALLOWED_ORIGINS" | wrangler secret put ALLOWED_ORIGINS -c worker/wrangler.toml
 
       - name: Deploy Worker
         id: deploy_worker_step
