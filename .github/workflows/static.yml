@@ -50,6 +50,7 @@ jobs:
             echo "Add it at Settings → Secrets and variables → Actions and retry." >&2
             exit 1
           fi
+          echo "DEBUG: CLOUDFLARE_ACCOUNT_ID is $CLOUDFLARE_ACCOUNT_ID"
           if [ -z "$GEMINI_API_KEY" ]; then
             echo "GEMINI_API_KEY is missing" >&2
             exit 1
