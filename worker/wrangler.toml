@@ -2,15 +2,11 @@ name = "ai-powered-static-portfolio-worker"
 main = "src/index.ts"
 compatibility_date = "2025-09-15"
 
+kv_namespaces = [
+  { binding = "RATE_LIMIT_KV", id = "$RATE_LIMIT_KV_ID", preview_id = "$RATE_LIMIT_KV_ID" },
+  { binding = "PROJECT_EMBEDDINGS_KV", id = "$PROJECT_EMBEDDINGS_KV_ID", preview_id = "$PROJECT_EMBEDDINGS_KV_ID" }
+]
+
 # Build step: compile TS -> worker/dist as ES modules for Wrangler
 [build]
 command = "npm --prefix worker run build"
-
-[build.upload]
-format = "modules"
-dir = "worker/dist"
-
-kv_namespaces = [
-  { binding = "RATE_LIMIT_KV", id = "$RATE_LIMIT_KV_ID" },
-  { binding = "PROJECT_EMBEDDINGS_KV", id = "$PROJECT_EMBEDDINGS_KV_ID" }
-]

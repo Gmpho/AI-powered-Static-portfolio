@@ -23,7 +23,7 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
     "vite": "^7.1.10",
-    "wrangler": "^4.43.0"
+    "wrangler": "^4.44.0"
   },
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "latest"
