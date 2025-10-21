@@ -69,7 +69,7 @@ jobs:
           PROJECT_EMBEDDINGS_KV_ID: ${{ secrets.PROJECT_EMBEDDINGS_KV_ID }}
         run: |
           # Deploy with correct --var syntax (use =). Secrets already pushed above.
-          wrangler deploy worker/src/index.ts --var RATE_LIMIT_KV_ID=${RATE_LIMIT_KV_ID} --var PROJECT_EMBEDDINGS_KV_ID=${PROJECT_EMBEDDINGS_KV_ID}
+          wrangler deploy worker/src/index.ts --name ai-powered-static-portfolio-worker --var RATE_LIMIT_KV_ID=${RATE_LIMIT_KV_ID} --var PROJECT_EMBEDDINGS_KV_ID=${PROJECT_EMBEDDINGS_KV_ID}
 
   deploy-frontend:
     needs: deploy-worker
