@@ -71,16 +71,33 @@ async function validateGeminiKey(apiKey: string): Promise<boolean> {
 	}
 }
 
+// Helper: retry async operations with exponential backoff + jitter for transient errors
+async function withRetries<T>(fn: () => Promise<T>, attempts = 3, baseDelayMs = 1000): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      // If error clearly non-transient (client error), rethrow immediately
+      const status = (err && typeof err === 'object' && 'status' in err) ? (err as any).status : null;
+      if (status && status < 500) throw err;
+      const backoff = baseDelayMs * Math.pow(2, i) + Math.floor(Math.random() * 200);
+      console.warn(`Transient error (attempt ${i + 1}/${attempts}), retrying in ${backoff}ms:`, err);
+      await new Promise((r) => setTimeout(r, backoff));
+    }
+  }
+  throw lastErr;
+}
+
 export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
 		console.log('--- CORS Check ---');
 		const origin = request.headers.get('Origin') || '';
 		console.log('Request Origin:', origin);
-		const allowedOriginsStr = env.ALLOWED_ORIGINS || 'http://localhost:5173,http://127.0.0.1:5173';
-		console.log('ALLOWED_ORIGINS Secret:', allowedOriginsStr);
-		const allowedOrigins = allowedOriginsStr.split(',');
+		const allowedOrigins = (env.ALLOWED_ORIGINS || 'http://localhost:5173,http://127.0.0.1:5173').split(',').map(s => s.trim()).filter(Boolean);
 		console.log('Allowed Origins Array:', allowedOrigins);
-		const isAllowed = allowedOrigins.includes(origin);
+		const isAllowed = origin && (allowedOrigins.includes(origin) || allowedOrigins.includes('*'));
 		console.log('Is Origin Allowed?', isAllowed);
 		console.log('--- End CORS Check ---');
 
@@ -103,7 +120,8 @@ export default {
 		}
 
 		if (request.method === 'OPTIONS') {
-			return new Response(null, { headers: corsHeaders });
+			// Include security headers on preflight as well
+			return new Response(null, { headers: { ...corsHeaders, ...securityHeaders } });
 		}
 
 		const url = new URL(request.url);
@@ -267,7 +285,20 @@ export default {
 			                        console.log('Tools being sent to Gemini API:', [projectSearchSchema as any, displayContactFormSchema as any]);
 			                        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash', tools: [{ functionDeclarations: [projectSearchSchema, displayContactFormSchema] }], systemInstruction: systemPrompt });
 			            
-			                        const stream = await model.generateContentStream(prompt);
+			                        // call generateContentStream with retries for transient 5xx errors (e.g. "model overloaded")
+			                        let stream;
+			                        try {
+			                          stream = await withRetries(() => model.generateContentStream(prompt), 3, 1000);
+			                        } catch (err) {
+			                          console.error('Retries exhausted when calling Gemini generateContentStream:', err);
+			                          // Return structured JSON error so frontend shows a clear message
+			                          return createErrorResponse(
+			                            'AI model overloaded or unavailable. Please try again later.',
+			                            503,
+			                            corsHeaders,
+			                            securityHeaders
+			                          );
+			                        }
 			                        const readableStream = new ReadableStream({
 
 			                            async start(controller) {

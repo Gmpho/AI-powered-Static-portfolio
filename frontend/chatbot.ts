@@ -5,11 +5,18 @@ import { stateService } from "./stateService";
 export async function sendPrompt(
   prompt: string,
   persona: string | undefined,
-  onChunk: (chunk: string) => void, // Callback for each text chunk
+  onChunk: (chunk: any) => void, // Accept string or parsed object
   onComplete: () => void, // Callback when stream ends
   onError: (error: string) => void, // Callback for errors
   toolResponse?: any, // Optional tool response to send
+  _depth = 0, // internal recursion depth to prevent loops
 ): Promise<void> {
+  const MAX_DEPTH = 2;
+  if (_depth > MAX_DEPTH) {
+    onError('Maximum tool-response recursion exceeded.');
+    return;
+  }
+
   const workerUrl = import.meta.env.VITE_WORKER_URL?.replace(/\/$/, '');
 
   if (!workerUrl) {
@@ -27,48 +34,82 @@ export async function sendPrompt(
       parts: [{ text: msg.text }],
     }));
 
+    // Add timeout / abort support to avoid hanging requests
+    const controller = new AbortController();
+    const timeoutMs = 60000;
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
     const response = await fetch(`${workerUrl}/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prompt, persona, projects, toolResponse, history }),
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
 
-    if (!response.ok || !response.body) {
+    // If server returned non-stream JSON (no body stream), handle it as a normal JSON response
+    const contentType = response.headers.get('content-type') || '';
+    if (!response.ok) {
       const errorText = await response.text();
       onError(`Request failed: ${response.status} - ${errorText}`);
       return;
     }
 
+    if (!response.body) {
+      if (contentType.includes('application/json')) {
+        try {
+          const json = await response.json();
+          onChunk(json);
+          onComplete();
+          return;
+        } catch (e) {
+          onError('Failed to parse JSON response from worker.');
+          return;
+        }
+      } else {
+        onError('No response body from worker.');
+        return;
+      }
+    }
+
     const reader = response.body.getReader();
     const decoder = new TextDecoder("utf-8");
 
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
 
-      const chunkText = decoder.decode(value, { stream: true });
-      console.log('Frontend received raw chunk:', chunkText); // Debug log
+        const chunkText = decoder.decode(value, { stream: true });
+        console.log('Frontend received raw chunk:', chunkText); // Debug log
 
-      const lines = chunkText.split('\n').filter(line => line.trim() !== '');
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.substring(6);
+        const lines = chunkText.split('\n').filter(line => line.trim() !== '');
+        for (const line of lines) {
           try {
-            const parsedData = JSON.parse(data);
-            if (parsedData.functionResponse) {
-              // Recursively call sendPrompt with the tool response
-              await sendPrompt(prompt, persona, onChunk, onComplete, onError, parsedData.functionResponse);
-              return; // Exit the current loop
+            if (line.startsWith('data: ')) {
+              const data = line.substring(6);
+              // Try parse JSON; if it's JSON, forward the object; otherwise forward raw string
+              try {
+                const parsedData = JSON.parse(data);
+                // If tool triggered a function response, recurse but guard depth
+                if (parsedData.functionResponse) {
+                  await sendPrompt(prompt, persona, onChunk, onComplete, onError, parsedData.functionResponse, _depth + 1);
+                  return; // exit current handler — the recursive call will continue stream
+                }
+                onChunk(parsedData);
+              } catch {
+                onChunk(data);
+              }
             } else {
-              onChunk(parsedData);
+              onChunk(line);
             }
-          } catch (e) {
-            onChunk(data);
+          } catch (innerErr) {
+            console.warn('Error processing chunk line:', innerErr);
           }
-        } else {
-          onChunk(line);
         }
       }
+    } finally {
+      try { await reader.cancel(); } catch { /* ignore */ }
     }
 
     onComplete();

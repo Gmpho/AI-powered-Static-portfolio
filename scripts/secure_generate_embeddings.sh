@@ -5,8 +5,22 @@
 # Exit immediately if a command exits with a non-zero status.
 set -e
 
-# The name of your KV namespace as defined in wrangler.toml
-KV_NAMESPACE="PROJECT_EMBEDDINGS_KV"
+# Check if the KV namespace ID is provided as an environment variable
+if [ -z "$PROJECT_EMBEDDINGS_KV_ID" ]; then
+  echo "Error: PROJECT_EMBEDDINGS_KV_ID is not set." >&2
+  echo "Please set it: export PROJECT_EMBEDDINGS_KV_ID='your-kv-namespace-id-here'" >&2
+  exit 1
+fi
+
+# Check if the Gemini API key is provided as an environment variable
+if [ -z "$GEMINI_API_KEY" ]; then
+  echo "Error: GEMINI_API_KEY is not set." >&2
+  echo "Please set it: export GEMINI_API_KEY='your-gemini-api-key-here'" >&2
+  exit 1
+fi
+
+# The ID of your KV namespace from the environment variable
+KV_NAMESPACE_ID="$PROJECT_EMBEDDINGS_KV_ID"
 
 # Compile the TypeScript script
 npx esbuild scripts/generateEmbeddings.ts --bundle --platform=node --outfile=scripts/dist/bundle.cjs --resolve-extensions=.ts,.js,.json
@@ -26,11 +40,11 @@ if node_output=$(node scripts/dist/bundle.cjs); then
         if [ -n "$KEY" ] && [ -n "$EMBEDDING" ]; then
             echo "Uploading embedding for project: $TITLE (key: $KEY)"
 
-            # Upload the embedding to the KV namespace
-            npx wrangler kv:put "$KEY" "$EMBEDDING" --namespace-id="$KV_NAMESPACE" --yes
+            # Upload the embedding to the KV namespace using the ID
+            npx wrangler kv:put "$KEY" "$EMBEDDING" --namespace-id="$KV_NAMESPACE_ID" --yes
         fi
     done
-    echo "All project embeddings have been successfully uploaded to the '$KV_NAMESPACE' namespace."
+    echo "All project embeddings have been successfully uploaded to the KV namespace."
 else
     # Handle the error from the node script
     echo "Error: Failed to generate embeddings. The node script exited with an error." >&2
