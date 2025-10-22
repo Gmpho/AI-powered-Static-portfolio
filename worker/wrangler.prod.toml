@@ -6,13 +6,13 @@ compatibility_date = "2025-09-15"
 [build]
 command = "npm --prefix worker run build"
 
+[env.production]
+# production specific overrides (if needed)
+
 kv_namespaces = [
   { binding = "RATE_LIMIT_KV", id = "$RATE_LIMIT_KV_ID" },
   { binding = "PROJECT_EMBEDDINGS_KV", id = "$PROJECT_EMBEDDINGS_KV_ID" }
 ]
-
-[env.production]
-# production specific overrides (if needed)
 
 [env.production.vars]
 RATE_LIMIT_KV_ID = "${RATE_LIMIT_KV_ID}"
