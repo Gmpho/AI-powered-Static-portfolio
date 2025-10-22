@@ -286,20 +286,21 @@ export default {
 			                        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash', tools: [{ functionDeclarations: [projectSearchSchema, displayContactFormSchema] }], systemInstruction: systemPrompt });
 			            
 			                        // call generateContentStream with retries for transient 5xx errors (e.g. "model overloaded")
-			                        let stream;
-			                        try {
-			                          stream = await withRetries(() => model.generateContentStream(prompt), 3, 1000);
-			                        } catch (err) {
-			                          console.error('Retries exhausted when calling Gemini generateContentStream:', err);
-			                          // Return structured JSON error so frontend shows a clear message
-			                          return createErrorResponse(
-			                            'AI model overloaded or unavailable. Please try again later.',
-			                            503,
-			                            corsHeaders,
-			                            securityHeaders
-			                          );
-			                        }
-			                        const readableStream = new ReadableStream({
+			                                                                                    let stream;
+			                                                                                    try {
+			                                                                                      stream = await withRetries(() => model.generateContentStream(prompt), 3, 1000);
+			                                                                                    } catch (err) {
+			                                                                                      console.error('Retries exhausted when calling Gemini generateContentStream:', err);
+			                                                                                      // Return structured JSON error so frontend shows a clear message
+			                                                                                      return createErrorResponse(
+			                                                                                        'AI model overloaded or unavailable. Please try again later.',
+			                                                                                        503,
+			                                                                                        corsHeaders,
+			                                                                                        securityHeaders
+			                                                                                      );
+			                                                                                    }
+			                                                                        
+			                                                                                    			                        const readableStream = new ReadableStream({
 
 			                            async start(controller) {
 
