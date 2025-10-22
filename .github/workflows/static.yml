@@ -53,7 +53,7 @@ jobs:
           RATE_LIMIT_KV_ID: ${{ secrets.RATE_LIMIT_KV_ID }}
           PROJECT_EMBEDDINGS_KV_ID: ${{ secrets.PROJECT_EMBEDDINGS_KV_ID }}
         run: |
-          npx wrangler deploy worker/src/index.ts -c worker/wrangler.prod.toml --env production --var RATE_LIMIT_KV_ID=${RATE_LIMIT_KV_ID} --var PROJECT_EMBEDDINGS_KV_ID=${PROJECT_EMBEDDINGS_KV_ID}
+          npx wrangler deploy -c worker/wrangler.prod.toml --env production --var RATE_LIMIT_KV_ID=${RATE_LIMIT_KV_ID} --var PROJECT_EMBEDDINGS_KV_ID=${PROJECT_EMBEDDINGS_KV_ID}
 
       - name: Set Secrets for Wrangler (prod)
         env:
