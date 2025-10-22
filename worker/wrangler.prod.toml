@@ -7,11 +7,12 @@ compatibility_date = "2023-10-26"
 command = "npm --prefix worker run build"
 
 [env.production]
+name = "ai-powered-static-portfolio-worker-production"
 # production specific overrides (if needed)
 
 kv_namespaces = [
-  { binding = "RATE_LIMIT_KV", id = "$RATE_LIMIT_KV_ID" },
-  { binding = "PROJECT_EMBEDDINGS_KV", id = "$PROJECT_EMBEDDINGS_KV_ID" }
+  { binding = "RATE_LIMIT_KV", id = "${env.RATE_LIMIT_KV_ID}" },
+  { binding = "PROJECT_EMBEDDINGS_KV", id = "${env.PROJECT_EMBEDDINGS_KV_ID}" }
 ]
 
 [env.production.vars]
