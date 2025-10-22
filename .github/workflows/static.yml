@@ -16,9 +16,6 @@ concurrency:
 
 jobs:
   deploy-worker:
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     runs-on: ubuntu-latest
     outputs:
       worker_url: ${{ steps.deploy_worker_step.outputs.url }}
@@ -44,17 +41,18 @@ jobs:
           npx wrangler whoami
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Deploy Worker (prod)
         id: deploy_worker_step
+        run: |
+          echo "Running command: npx wrangler deploy worker/dist/index.js -c worker/wrangler.prod.toml --env production --var RATE_LIMIT_KV_ID:${{ secrets.RATE_LIMIT_KV_ID }} --var PROJECT_EMBEDDINGS_KV_ID:${{ secrets.PROJECT_EMBEDDINGS_KV_ID }}"
+          npx wrangler deploy worker/dist/index.js -c worker/wrangler.prod.toml --env production --var RATE_LIMIT_KV_ID:${{ secrets.RATE_LIMIT_KV_ID }} --var PROJECT_EMBEDDINGS_KV_ID:${{ secrets.PROJECT_EMBEDDINGS_KV_ID }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           RATE_LIMIT_KV_ID: ${{ secrets.RATE_LIMIT_KV_ID }}
           PROJECT_EMBEDDINGS_KV_ID: ${{ secrets.PROJECT_EMBEDDINGS_KV_ID }}
-        run: |
-          echo "Running command: npx wrangler deploy worker/dist/index.js -c worker/wrangler.prod.toml"
-          npx wrangler deploy worker/dist/index.js -c worker/wrangler.prod.toml
 
       - name: Set Secrets for Wrangler (prod)
         env:
