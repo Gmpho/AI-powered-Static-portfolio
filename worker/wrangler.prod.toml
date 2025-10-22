@@ -13,3 +13,7 @@ kv_namespaces = [
 
 [env.production]
 # production specific overrides (if needed)
+
+[env.production.vars]
+RATE_LIMIT_KV_ID = "${RATE_LIMIT_KV_ID}"
+PROJECT_EMBEDDINGS_KV_ID = "${PROJECT_EMBEDDINGS_KV_ID}"
