@@ -9,4 +9,9 @@ export default defineConfig({
     emptyOutDir: true, // Clean the output directory before building
     sourcemap: false, // Do not generate source maps for production
   },
+  resolve: {
+    alias: {
+      'dompurify': 'dompurify/dist/purify.js',
+    },
+  },
 });
