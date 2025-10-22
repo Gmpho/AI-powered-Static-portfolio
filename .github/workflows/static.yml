@@ -53,8 +53,8 @@ jobs:
           RATE_LIMIT_KV_ID: ${{ secrets.RATE_LIMIT_KV_ID }}
           PROJECT_EMBEDDINGS_KV_ID: ${{ secrets.PROJECT_EMBEDDINGS_KV_ID }}
         run: |
-          echo "Running command: npx wrangler deploy worker/dist/index.js -c worker/wrangler.prod.toml --env production"
-          npx wrangler deploy worker/dist/index.js -c worker/wrangler.prod.toml --env production
+          echo "Running command: npx wrangler deploy worker/dist/index.js -c worker/wrangler.prod.toml --env production --name ai-powered-static-portfolio-worker-production"
+          npx wrangler deploy worker/dist/index.js -c worker/wrangler.prod.toml --env production --name ai-powered-static-portfolio-worker-production
 
       - name: Set Secrets for Wrangler (prod)
         env:
