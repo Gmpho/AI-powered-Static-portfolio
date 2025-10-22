@@ -1,6 +1,5 @@
 name = "ai-powered-static-portfolio-worker"
 main = "dist/index.js"
-type = "javascript"
 compatibility_date = "2025-09-15"
 
 # Build step: compile TS -> worker/dist as ES modules for Wrangler
