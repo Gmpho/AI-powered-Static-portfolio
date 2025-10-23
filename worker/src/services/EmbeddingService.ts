@@ -37,7 +37,7 @@ export class EmbeddingService {
     }
 
     private validateProjectId(projectId: string): void {
-        if (!/^[a-zA-Z0-9-_]+$/.test(projectId)) {
+        if (!/^[a-zA-Z0-9-_:]+$/.test(projectId)) {
             throw new Error(`Invalid projectId: ${projectId}`);
         }
     }

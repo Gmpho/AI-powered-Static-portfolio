@@ -1,4 +1,5 @@
 import { defineConfig } from "vite";
+import { resolve } from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -11,7 +12,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      'dompurify': 'dompurify/dist/purify.js',
+      // Create an absolute path to the dependency from the project root
+      'dompurify': resolve(__dirname, 'node_modules/dompurify/dist/purify.js'),
     },
   },
 });

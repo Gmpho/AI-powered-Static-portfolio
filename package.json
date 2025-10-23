@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@sentry/browser": "^10.17.0",
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "dompurify": "^3.3.0"
   },
   "devDependencies": {
     "@google/generative-ai": "^0.24.1",
