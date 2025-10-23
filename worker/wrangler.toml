@@ -3,8 +3,8 @@ main = "src/index.ts"
 compatibility_date = "2025-09-15"
 
 kv_namespaces = [
-  { binding = "RATE_LIMIT_KV", id = "${RATE_LIMIT_KV_ID}", preview_id = "${RATE_LIMIT_KV_ID}" },
-  { binding = "PROJECT_EMBEDDINGS_KV", id = "${PROJECT_EMBEDDINGS_KV_ID}", preview_id = "${PROJECT_EMBEDDINGS_KV_ID}" }
+  { binding = "RATE_LIMIT_KV", id = "__RATE_LIMIT_KV_ID__", preview_id = "__RATE_LIMIT_KV_ID__" },
+  { binding = "PROJECT_EMBEDDINGS_KV", id = "__PROJECT_EMBEDDINGS_KV_ID__", preview_id = "__PROJECT_EMBEDDINGS_KV_ID__" }
 ]
 
 # Build step: compile TS -> worker/dist as ES modules for Wrangler
