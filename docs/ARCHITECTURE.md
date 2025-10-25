@@ -15,10 +15,9 @@ graph LR
 
   subgraph Cloudflare ["Cloudflare"]
     B["Worker"]
-    C["KV RATE_LIMIT_KV"]
+    K["KV Stores"]
     G["Guardrails"]
     T["Tools"]
-    E["KV PROJECT_EMBEDDINGS_KV"]
   end
 
   subgraph GoogleCloud ["Google Cloud"]
@@ -28,15 +27,15 @@ graph LR
   %% Connections
   A -->|"POST /chat (prompt, history)"| B
   A -->|"POST /api/generateEmbedding"| B
-  B -->|"Enforce Rate Limits"| C
+  B -->|"Enforce Rate Limits"| K
   B -->|"Apply Guardrails"| G
   G -->|"If safe, proceed"| B
   B -->|"generateContent (with tools, history)"| D
   D -->|"response (text/tool_call)"| B
   B -->|"Execute Tool (e.g., projectSearch)"| T
   T -->|"Tool Output (projects, notice)"| B
-  B -->|"Cache Query Embedding"| E
-  E -->|"Retrieve Project Embeddings"| T
+  B -->|"Cache Query Embedding"| K
+  K -->|"Retrieve Project Embeddings"| T
   B -->|"Streaming SSE (text/tool_response)"| A
 ```
 
@@ -48,7 +47,7 @@ If you prefer a static image, the repository also includes `Architecturemd.svg` 
 
 - **Technologies:** Vanilla TypeScript, HTML, CSS.
   - **HTML Templating:** HTML structures are created using JavaScript template literals within `.ts` files for dynamic content.
-- **Responsibilities:** Renders the main portfolio page, including the header, hero section, and project cards. It also provides the user interface for the chatbot, including the chat window, message history, and input form. All UI manipulation is handled directly via the DOM.
+- **Responsibilities:** Renders the main portfolio page, including the header, hero section, and project cards. It also provides the user interface for the chatbot, including the chat window, message history, and input form. All UI manipulation is handled directly via the DOM. Accessibility features (ARIA attributes) have been integrated to enhance usability for all users.
 
 ### 🧠 Application Logic Layer (Client-Side)
 
@@ -58,6 +57,9 @@ If you prefer a static image, the repository also includes `Architecturemd.svg` 
   - **AI Integration:** Handles communication with the Cloudflare Worker, which securely calls the Google Gemini API and orchestrates tool calls. It processes streaming Server-Sent Events (SSE) from the worker, which can contain both AI text responses and signals for frontend actions (e.g., displaying a contact form). It now sends the full conversation history with each request to the worker, ensuring the model maintains context.
   - **Orchestration Logic:** The client-side logic no longer interprets user intent for tool orchestration. Instead, it sends user prompts to the worker, which then handles tool selection and execution via the LLM.
   - **Data Persistence:** Uses the browser's `sessionStorage` to save and load the chat history, allowing conversations to persist for the duration of the browser tab session.
+  - **Client-Side Rate Limiting & Input Validation:** Implements client-side rate limiting to prevent API abuse and robust input validation to ensure data integrity and security.
+  - **Internationalization (i18n):** The frontend is now prepared for internationalization, allowing for easy adaptation to multiple languages.
+  - **User Feedback:** Integrates a mechanism for users to provide feedback via the chatbot.
 
 ### 💾 Data Layer
 
@@ -74,6 +76,7 @@ If you prefer a static image, the repository also includes `Architecturemd.svg` 
   - **Cloudflare Workers:** The AI backend, responsible for securely interacting with the Gemini API, is deployed as a Cloudflare Worker. It includes:
     - **Tool Orchestration:** Receives tool calls from the Gemini model, executes the corresponding logic (e.g., `projectSearch`, `displayContactForm`), and manages their output. It now correctly handles `functionResponse` parts in the conversation history.
     - **Streaming Responses (SSE):** Streams AI text responses and tool execution results back to the frontend as Server-Sent Events.
-    - **Rate Limiting:** An in-memory mechanism to prevent API abuse by limiting requests from a single IP address.
+    - **Distributed Rate Limiting:** A distributed, KV-backed rate limiting mechanism to prevent API abuse by limiting requests from a single IP address across all worker instances.
     - **Guardrails:** Logic to block requests containing sensitive patterns, enhancing security and preventing injection attacks. The `TRIPWIRE` regex has been adjusted to prevent false positives.
     - **Embedding Generation:** Provides an `/api/generateEmbedding` endpoint to create vector embeddings for text using the Gemini API, supporting semantic search within the `projectSearch` tool. It now gracefully handles API quota errors and caches query embeddings in KV.
+  - **Offline Support (PWA Ready):** The application is configured to register a service worker, laying the groundwork for Progressive Web App (PWA) features like offline access and faster loading.

@@ -19,39 +19,45 @@ Follow the sections below in order.
 Add the following repository secrets (Settings → Secrets → Actions):
 
 - `CLOUDFLARE_API_TOKEN` — Cloudflare API token with `Workers:Edit` and `Account:Read` permissions
-- `CLOUDFLARE_ACCOUNT_ID` — Your Cloudflare Account ID
+- `CLOUDFLARE_ACCOUNT_ID` — Your Cloudflare account ID
 - `VITE_WORKER_URL` — The URL of your deployed Cloudflare Worker (used by the frontend build)
+- `RATE_LIMIT_KV_ID` — The ID of your `RATE_LIMIT_KV` namespace (for production deployment)
+- `PROJECT_EMBEDDINGS_KV_ID` — The ID of your `PROJECT_EMBEDDINGS_KV` namespace (for production deployment)
 
 Do not commit secrets or production keys to the repository.
 
-1. Create Cloudflare KV namespace for Rate Limiting (one-time)
-   Run locally (PowerShell / pwsh):
+1. Create Cloudflare KV namespaces (one-time)
+   Run locally (PowerShell / pwsh) for each namespace:
 
 ```pwsh
 npx wrangler kv:namespace create "RATE_LIMIT_KV"
+npx wrangler kv:namespace create "PROJECT_EMBEDDINGS_KV"
 ```
 
-Copy the `id` from the command output and save it to your secure secrets store (or GitHub secret `RATE_LIMIT_KV_ID`). This KV namespace will be used by the Worker for distributed rate limiting.
+Copy the `id` from the command output for each and save it to your secure secrets store (or GitHub secrets `RATE_LIMIT_KV_ID` and `PROJECT_EMBEDDINGS_KV_ID`). These KV namespaces will be used by the Worker for distributed rate limiting and project embeddings.
 
 % DEPLOYMENT GUIDE (synchronized with GEMINI.md)
 
 This deployment guide is kept in sync with `GEMINI.md` (the project source-of-truth for architecture, runtime, and operational guidance).
 
-Overview
+## Overview
 
 - Frontend (Vite SPA) → GitHub Pages
 - Backend (Cloudflare Worker) → Cloudflare Workers (wrangler)
+
+## Prerequisites
 
 - Node.js (v18+; v20 recommended)
 - npm / npx
 - `wrangler` (Cloudflare CLI) installed and authenticated
 - GitHub repository with Actions enabled
 
-- Start the frontend dev server (Vite):
+## Environment Variables & Secrets
 
 - `CF_API_TOKEN` — Cloudflare API token (least-privilege; Worker publish + KV access)
 - `CF_ACCOUNT_ID` — Cloudflare Account ID
 - `RATE_LIMIT_KV_ID` — KV Namespace ID for production
+- `PROJECT_EMBEDDINGS_KV_ID` — KV Namespace ID for production
 - `GEMINI_API_KEY` — Google Gemini API key for the Worker
 
 - Configure the frontend to call the local worker by setting `VITE_WORKER_URL` or similar in `.env` (Vite picks up `.env` variables).
@@ -84,9 +90,17 @@ main = "src/index.ts"
 compatibility_date = "2025-10-01"
 
 kv_namespaces = [
-  { binding = "RATE_LIMIT_KV", id = "YOUR_RATE_LIMIT_KV_ID" },
-  { binding = "PROJECT_EMBEDDINGS_KV", id = "YOUR_PROJECT_EMBEDDINGS_KV_ID" }
+  { binding = "RATE_LIMIT_KV", id = "${RATE_LIMIT_KV_ID}" },
+  { binding = "PROJECT_EMBEDDINGS_KV", id = "${PROJECT_EMBEDDINGS_KV_ID}" }
 ]
+
+[assets]
+binding = "ASSETS"
+directory = "./frontend/dist"
+not_found_handling = "single-page-application"
+
+[dev]
+inspector_port = 0
 
 [build]
 command = "npm ci && npm run build"
@@ -97,16 +111,18 @@ command = "npm ci && npm run build"
 
 In CI you can set the env mapping for `CLOUDFLARE_ACCOUNT_ID`, `RATE_LIMIT_KV_ID`, and `PROJECT_EMBEDDINGS_KV_ID` via GitHub Actions secrets.
 
-**5) Managing Worker secrets (GEMINI_API_KEY, ALLOWED_ORIGINS)**
-During interactive local development:
+**5) Managing Worker secrets (GEMINI_API_KEY, ALLOWED_ORIGINS, KV_NAMESPACE_IDs)**
+During interactive local development, these are typically set in `worker/.dev.vars`.
 
 ```pwsh
-cd worker
-npx wrangler secret put GEMINI_API_KEY
-npx wrangler secret put ALLOWED_ORIGINS
+# Example .dev.vars content
+GEMINI_API_KEY="YOUR_GOOGLE_AI_STUDIO_KEY_HERE"
+ALLOWED_ORIGINS="http://localhost:5173,http://127.0.0.1:5173"
+RATE_LIMIT_KV_ID="YOUR_KV_NAMESPACE_ID_HERE"
+PROJECT_EMBEDDINGS_KV_ID="YOUR_KV_NAMESPACE_ID_HERE"
 ```
 
-In GitHub Actions you can:
+In GitHub Actions, you can:
 
 - Use `wrangler secret put` by running a step with `wrangler` and the secrets injected from GitHub Actions secrets.
 - Or use the `wrangler-action` `apiToken` to publish and then set secrets via Cloudflare UI.
@@ -141,16 +157,14 @@ Local dev:
 # in project root
 npm install
 npm install --prefix worker
-# run worker (local KV for rate limiting and guardrails active)
-npx wrangler dev worker/src/index.ts --local
-# run frontend
-npm --prefix frontend run dev
+npm run dev
 ```
 
 Create KV (one-time):
 
 ```pwsh
 npx wrangler kv:namespace create "RATE_LIMIT_KV"
+npx wrangler kv:namespace create "PROJECT_EMBEDDINGS_KV"
 ```
 
 Publish worker interactively:

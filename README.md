@@ -36,11 +36,13 @@ Traditional portfolios are static and passive. This project transforms the conve
 - **🤖 Conversational AI Chatbot:** Engage directly with an AI assistant powered by the cutting-edge Gemini API to explore projects and gain insights.
 - **🎨 Dynamic Project Showcase:** A clean, modern interface designed to beautifully present diverse portfolio projects.
 - **🔍 Intelligent Semantic Search:** Leverage AI to semantically search for projects based on natural language queries, providing highly relevant results. This now includes a robust keyword fallback and graceful handling of API quota errors, ensuring search functionality remains available and user-friendly.
-- **📝 Seamless Contact Integration:** The chatbot is designed to intuitively guide users to an interactive contact form, simplifying communication. *Note: This feature is planned for future implementation.*
-
+- **📝 Seamless Contact & Feedback Integration:** The chatbot is designed to intuitively guide users to an interactive contact or feedback form, simplifying communication and gathering valuable insights.
+- **🛡️ Client-Side Rate Limiting & Input Validation:** Implemented client-side rate limiting to prevent API abuse and robust input validation to ensure data integrity and security.
+- **♿ Enhanced Accessibility:** The chatbot UI now includes ARIA attributes for improved accessibility, ensuring a better experience for all users.
+- **🌍 Internationalization (i18n) Ready:** The frontend is now prepared for internationalization, allowing for easy adaptation to multiple languages.
 - **💾 Session-based Conversations:** Chat history is automatically saved to `sessionStorage`, ensuring continuity within a single browser tab and clearing upon tab closure. The full conversation history is now sent with each request to the worker, ensuring the AI model maintains context.
 - **🎤 Intuitive Voice Input:** The application is designed to allow hands-free interaction with the chatbot using integrated voice-to-text functionality via the Web Speech API. *Note: This feature is planned for future implementation.*
-
+- **⚡ Offline Support (PWA Ready):** The application is configured to register a service worker, laying the groundwork for Progressive Web App (PWA) features like offline access and faster loading.
 - **🌗 Adaptive Light/Dark Mode:** Personalize your viewing experience with a toggle for light and dark themes.
 
 ## 🛠️ Technology Stack
@@ -131,7 +133,7 @@ The Cloudflare Worker acts as a secure proxy and backend for AI-related function
 
 `Frontend Browser -> Cloudflare Worker -> Google Gemini API`
 
-> **✅ Enhanced Security:** The `GEMINI_API_KEY` and `ALLOWED_ORIGINS` are securely stored as **Cloudflare Worker secrets**, preventing their exposure. The `VITE_WORKER_URL` for the frontend is stored as a **GitHub repository secret`. This robust approach is suitable for production environments. The Cloudflare Worker also implements refined guardrails with an adjusted `TRIPWIRE` regex to prevent false positives while maintaining strong protection against sensitive content injection.
+> **✅ Enhanced Security:** The `GEMINI_API_KEY` and `ALLOWED_ORIGINS` are securely stored as **Cloudflare Worker secrets**, preventing their exposure. The `VITE_WORKER_URL` for the frontend is stored as a **GitHub repository secret`. This robust approach is suitable for production environments. The Cloudflare Worker also implements refined guardrails with an adjusted `TRIPWIRE` regex to prevent false positives while maintaining strong protection against sensitive content injection. The Content Security Policy (CSP) has been further hardened to mitigate XSS risks.
 
 ## 🧪 Testing
 
@@ -163,7 +165,7 @@ To ensure the reliability and quality of the application, a comprehensive testin
    - In the `frontend` directory, create a `.env.local` file with the following content:
 
      ```env
-     VITE_WORKER_URL="http://127.0.0.1:8787"
+     VITE_WORKER_URL="http://localhost:8787"
      ```
 
    - In the `worker` directory, create a `.dev.vars` file with the following content:
@@ -172,6 +174,7 @@ To ensure the reliability and quality of the application, a comprehensive testin
      GEMINI_API_KEY="YOUR_GOOGLE_AI_STUDIO_KEY_HERE"
      ALLOWED_ORIGINS="http://localhost:5173,http://127.0.0.1:5173"
      RATE_LIMIT_KV_ID="YOUR_KV_NAMESPACE_ID_HERE"
+     PROJECT_EMBEDDINGS_KV_ID="YOUR_KV_NAMESPACE_ID_HERE"
      ```
 
 3. **Set up Environment Variables (Production):**
@@ -179,20 +182,15 @@ To ensure the reliability and quality of the application, a comprehensive testin
      - `GEMINI_API_KEY`: Your Google AI Studio key (set via `npx wrangler secret put GEMINI_API_KEY`).
      - `ALLOWED_ORIGINS`: Your GitHub Pages URL (e.g., `https://gmpho.github.io`) (set via `npx wrangler secret put ALLOWED_ORIGINS`).
      - `RATE_LIMIT_KV_ID`: The ID of your `RATE_LIMIT_KV` namespace (set via `npx wrangler secret put RATE_LIMIT_KV_ID`).
+     - `PROJECT_EMBEDDINGS_KV_ID`: The ID of your `PROJECT_EMBEDDINGS_KV` namespace (set via `npx wrangler secret put PROJECT_EMBEDDINGS_KV_ID`).
    - **GitHub Repository Secret:**
      - `VITE_WORKER_URL`: The URL of your deployed Cloudflare Worker (e.g., `https://ai-powered-static-portfolio-worker.<YOUR_ACCOUNT_NAME>.workers.dev`) (set via `gh secret set VITE_WORKER_URL`).
 
 4. **Run the development servers:**
-   - In one terminal, start the frontend server:
+   - In the project root, run:
 
      ```bash
      npm run dev
-     ```
-
-   - In a second terminal, start the worker server from the project root:
-
-     ```bash
-     npx wrangler dev worker/src/index.ts
      ```
 
 For detailed troubleshooting, refer to the [Debugging and Troubleshooting](GEMINI.md#debugging-and-troubleshooting) section in `GEMINI.md` and the [Known Issues](docs/KNOWN_ISSUES.md) document for specific resolutions.

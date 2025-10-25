@@ -14,21 +14,24 @@ This file contains a list of official documentation and other useful resources r
 
 - **Web Speech API on MDN:** [https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API)
 - **Fetch API on MDN:** [https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
-- 
-https://developers.cloudflare.com/pulumi/tutorial/hello-world/
-https://developers.cloudflare.com/workers/testing/vitest-integration/known-issues/
-https://developers.cloudflare.com/workers/testing/vitest-integration/write-your-first-test/
-https://hono.dev/docs/guides/testing
-https://developers.cloudflare.com/workers/testing/vitest-integration/test-apis/
-https://developers.cloudflare.com/d1/tutorials/build-an-api-to-access-d1/
-https://developers.cloudflare.com/workers/examples/cors-header-proxy/
 
+## ☁️ Cloudflare Workers
+
+- **Wrangler Configuration:** [https://developers.cloudflare.com/workers/wrangler/configuration/](https://developers.cloudflare.com/workers/wrangler/configuration/)
+- **Workers KV:** [https://developers.cloudflare.com/workers/runtime-apis/kv/](https://developers.cloudflare.com/workers/runtime-apis/kv/)
+- **Vitest Integration:** [https://developers.cloudflare.com/workers/testing/vitest-integration/](https://developers.cloudflare.com/workers/testing/vitest-integration/)
+- **CORS Handling:** [https://developers.cloudflare.com/workers/examples/cors-header-proxy/](https://developers.cloudflare.com/workers/examples/cors-header-proxy/)
 
 ## 🎨 Frontend Development
 
 - **TypeScript Handbook:** [https://www.typescriptlang.org/docs/handbook/intro.html](https://www.typescriptlang.org/docs/handbook/intro.html)
 - **CSS Custom Properties (Variables) on MDN:** [https://developer.mozilla.org/en-US/docs/Web/CSS/--\*](https://developer.mozilla.org/en-US/docs/Web/CSS/--*)
 - **Font Awesome (for icons):** [https://fontawesome.com/](https://fontawesome.com/)
+- **DOMPurify:** [https://github.com/DOMPurify/DOMPurify](https://github.com/DOMPurify/DOMPurify)
+- **Zod:** [https://zod.dev/](https://zod.dev/)
+- **Vite Image Optimizer:** [https://github.com/FatehAK/vite-plugin-image-optimizer](https://github.com/FatehAK/vite-plugin-image-optimizer)
+- **Concurrently:** [https://github.com/open-cli-tools/concurrently](https://github.com/open-cli-tools/concurrently)
+- **i18n (Internationalization):** [https://developer.mozilla.org/en-US/docs/Glossary/Internationalization](https://developer.mozilla.org/en-US/docs/Glossary/Internationalization)
 
 ## 🚀 Future Enhancements & Concepts
 

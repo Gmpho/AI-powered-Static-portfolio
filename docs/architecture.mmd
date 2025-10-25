@@ -6,10 +6,9 @@ graph LR
 
   subgraph Cloudflare ["Cloudflare"]
     B["Worker"]
-    C["KV RATE_LIMIT_KV"]
+    K["KV Stores"]
     G["Guardrails"]
     T["Tools"]
-    E["KV PROJECT_EMBEDDINGS_KV"]
   end
 
   subgraph GoogleCloud ["Google Cloud"]
@@ -19,14 +18,13 @@ graph LR
   %% Connections
   A -->|"POST /chat (prompt, history)"| B
   A -->|"POST /api/generateEmbedding"| B
-  B -->|"Enforce Rate Limits"| C
+  B -->|"Enforce Rate Limits"| K
   B -->|"Apply Guardrails"| G
   G -->|"If safe, proceed"| B
   B -->|"generateContent (with tools, history)"| D
   D -->|"response (text/tool_call)"| B
   B -->|"Execute Tool (e.g., projectSearch)"| T
   T -->|"Tool Output (projects, notice)"| B
-  B -->|"Cache Query Embedding"| E
-  E -->|"Retrieve Project Embeddings"| T
+  B -->|"Cache Query Embedding"| K
+  K -->|"Retrieve Project Embeddings"| T
   B -->|"Streaming SSE (text/tool_response)"| A
-

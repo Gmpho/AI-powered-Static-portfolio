@@ -22,4 +22,4 @@ The assistant's actions are now orchestrated by the Cloudflare Worker, where the
 - **🔍 Project Search:** The LLM can now trigger a robust project search function via a tool call. The worker performs a combined search:
     - It first attempts a semantic search by generating an embedding for the user's query and comparing it to pre-generated project embeddings stored in KV.
     - If semantic search fails (e.g., due to API quota limits) or yields no highly relevant results, it gracefully falls back to a comprehensive keyword search across project titles, summaries, descriptions, and tags. This ensures relevant results are always provided.
-- **📝 Contact Form:** The LLM can now trigger the display of an interactive contact form directly in the chat window via a tool call.
+- **📝 Interactive Contact & Feedback Forms:** The LLM can now trigger the display of interactive contact and feedback forms directly in the chat window via a tool call.

@@ -14,6 +14,8 @@ This project uses GitHub Actions to build and publish the static frontend (GitHu
 - `CLOUDFLARE_API_TOKEN` — Cloudflare API token with `Workers:Edit` and `Account:Read` permissions (store safely)
 - `CLOUDFLARE_ACCOUNT_ID` — Your Cloudflare account ID
 - `VITE_WORKER_URL` — The URL of your deployed Cloudflare Worker (used by the frontend build)
+- `RATE_LIMIT_KV_ID` — The ID of your `RATE_LIMIT_KV` namespace (for production deployment)
+- `PROJECT_EMBEDDINGS_KV_ID` — The ID of your `PROJECT_EMBEDDINGS_KV` namespace (for production deployment)
 
 
 ## High-level Workflow
@@ -39,7 +41,8 @@ This job `needs: deploy`, meaning it runs *after* the frontend has been deployed
 1.  Checkout the repository.
 2.  Set up Node.js (LTS).
 3.  Install worker dependencies (`npm install --prefix worker`).
-4.  Deploy the Cloudflare Worker using `cloudflare/wrangler-action`.
+4.  Run worker unit tests (`npm test --prefix worker`) as a quality gate.
+5.  Deploy the Cloudflare Worker using `cloudflare/wrangler-action`.
 
 
 ## Minimal GitHub Actions snippet
@@ -115,18 +118,43 @@ jobs:
           cache: 'npm'
       - name: Install worker dependencies
         run: npm install --prefix worker
+      - name: Run Worker Unit Tests
+        run: npm test --prefix worker
       - name: Deploy worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: 'deploy worker/src/index.ts'
+          environment: production
+        env:
+          RATE_LIMIT_KV_ID: ${{ secrets.RATE_LIMIT_KV_ID }}
+          PROJECT_EMBEDDINGS_KV_ID: ${{ secrets.PROJECT_EMBEDDINGS_KV_ID }}
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm'
+      - name: Install Root Dependencies
+        run: npm install
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+      - name: Run Playwright E2E tests
+        run: npx playwright test
+        env:
+          VITE_WORKER_URL: ${{ secrets.VITE_WORKER_URL }}
 ```
 
 Notes:
 
 - Use npm ci for deterministic installs in CI.
-- Prefer wrangler publish over wrangler deploy in CI for consistency.
 - Do not print secrets to logs. Use environment variables and GitHub secrets.
 
 ## Rollback & Safety

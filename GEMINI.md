@@ -9,9 +9,13 @@ This is a client-side-only, AI-powered portfolio website. It features a conversa
 - **🤖 Conversational AI Chatbot:** Interact with an AI assistant powered by the Gemini API.
 - **🎨 Project Showcase:** A clean, modern interface to display portfolio projects.
 - **🔍 Semantic Project Search:** The AI can search for projects based on natural language queries.
-- **📝 Interactive Contact Form:** The chatbot can display a contact form for users to get in touch.
+- **📝 Interactive Contact & Feedback Forms:** The chatbot can display interactive contact and feedback forms for users to get in touch or provide input.
+- **🛡️ Client-Side Rate Limiting & Input Validation:** Implemented client-side rate limiting to prevent API abuse and robust input validation to ensure data integrity and security.
+- **♿ Enhanced Accessibility:** The chatbot UI now includes ARIA attributes for improved accessibility, ensuring a better experience for all users.
+- **🌍 Internationalization (i18n) Ready:** The frontend is now prepared for internationalization, allowing for easy adaptation to multiple languages.
 - **💾 Conversation Persistence:** Chat history is saved to `localStorage`.
 - **🎤 Voice Input:** Includes voice-to-text functionality using the Web Speech API.
+- **⚡ Offline Support (PWA Ready):** The application is configured to register a service worker, laying the groundwork for Progressive Web App (PWA) features like offline access and faster loading.
 - **🌗 Light/Dark Mode:** A theme toggle for user preference.
 
 ## 🛠️ Technology Stack
@@ -60,7 +64,7 @@ graph TD
 - **Responsibilities:** This is the core of the application, running entirely in the user's browser.
   - **State Management:** Manages the application state, such as the conversation history.
   - **AI Integration:** Handles communication with the Cloudflare Worker, which processes and simplifies the Gemini API's raw response before sending a clean, structured response to the frontend.
-  - **Orchestration Logic:** Contains the logic to interpret user intent based on keywords.
+  - **Orchestration Logic:** The client-side logic no longer interprets user intent for tool orchestration. Instead, it sends user prompts to the worker, which then handles tool selection and execution via the LLM.
   - **Data Persistence:** Uses the browser's `localStorage` to save and load the chat history.
 
 ### 💾 Data Layer
@@ -80,9 +84,9 @@ Resume pipeline: Store resume PDFs in Cloudflare R2. The Worker must extract tex
 
 `Frontend Browser -> Cloudflare Worker -> Google Gemini API`
 
-> **✅ Enhanced Security:** The `GEMINI_API_KEY` and `ALLOWED_ORIGINS` are securely stored as **Cloudflare Worker secrets**, preventing their exposure. The `VITE_WORKER_URL` for the frontend is stored as a **GitHub repository secret**. This robust approach is suitable for production environments.
+> **✅ Enhanced Security:** The `GEMINI_API_KEY` and `ALLOWED_ORIGINS` are securely stored as **Cloudflare Worker secrets**, preventing their exposure. The `VITE_WORKER_URL` for the frontend is stored as a **GitHub repository secret**. This robust approach is suitable for production environments. The Cloudflare Worker also implements refined guardrails with an adjusted `TRIPWIRE` regex to prevent false positives while maintaining strong protection against sensitive content injection. The Content Security Policy (CSP) has been further hardened to mitigate XSS risks.
 
-- **Injection Detection (Guardrails):** The Worker employs guardrails (`worker/src/guardrails.ts`) to block requests containing sensitive patterns (e.g., `/curl|wget|base64|sk-|api_key=|-----BEGIN/i`) and returns a polite error message, preventing potential code injection or secret exposure.
+- **Injection Detection (Guardrails):** The Worker employs guardrails (`worker/src/guardrails.ts`) to block requests containing sensitive patterns (e.g., `/curl|wget|base64|sk-|api_key=|-----BEGIN/i`) and returns a polite error message, preventing potential code injection or secret exposure. The `TRIPWIRE` regex has been refined for more accurate detection.
 
 # 🤖 The AI Assistant: "AG Gift."
 
@@ -96,24 +100,24 @@ The AI assistant's behavior and personality are defined by a system prompt provi
 
 ## 🧠 Prompt Engineering & Logic
 
-The application uses a combination of prompt engineering and client-side logic.
+The application uses a combination of prompt engineering and worker-side tool orchestration.
 
 1.  **System Prompt:** A detailed system prompt establishes the AI's persona and core directives.
 2.  **Conversational History:** The last 5 turns (10 messages) of the conversation are sent with each new prompt to maintain context.
-3.  **Keyword-Based Logic:** The application uses simple JavaScript logic to check for keywords to decide which "tool" to use.
+3.  **LLM-Driven Tool Orchestration:** The Cloudflare Worker now leverages Gemini's function calling capabilities. The LLM determines user intent and decides which tool (e.g., project search, contact form) to execute. The worker then handles the tool execution and streams the results back to the frontend.
 
-## 🛠️ Simulated Tool Contracts (Frontend)
+## 🛠️ Worker-Orchestrated Tools
 
-The application simulates a "tool-based" architecture within the frontend code.
+The application now uses a "tool-based" architecture where the Cloudflare Worker orchestrates tool calls based on LLM decisions.
 
-- **Project Metadata:** Fetches metadata about all portfolio projects.
-- **Contact Email:** Simulates sending a contact email and displays a contact form.
+- **Project Search:** The LLM can trigger a robust project search function via a tool call, performing combined semantic and keyword searches.
+- **Contact/Feedback Forms:** The LLM can trigger the display of interactive contact or feedback forms directly in the chat window via a tool call.
 
 # 🛣️ Future Development
 
 ## Path to a True Agent
 
-The current implementation is not a true agent. To evolve this project into a true agent architecture, the orchestration logic would need to be shifted from the client-side code to the LLM itself.
+The current implementation is a significant step towards a true agent. The orchestration logic has been shifted from client-side keyword matching to the LLM itself, with the Cloudflare Worker acting as the agent executor.
 
 Memory & Learning: Use session-level memory for short context (in-memory/Durable), and a vetted long-term memory stored as embeddings in a vector DB. New memories must pass human review before being promoted to long-term store.
 
@@ -127,7 +131,7 @@ A CI/CD pipeline (e.g., with GitHub Actions) is recommended for automated buildi
 
 ## Recommended Testing Strategy
 
-While an end-to-end (E2E) testing framework like **Playwright** is used for validating the entire application workflow, the worker itself has a suite of unit and integration tests using **Vitest**. These tests cover the core functionality of the `/chat` endpoint, including rate limiting, API failure handling, and persona logic.
+While an end-to-end (E2E) testing framework like **Playwright** is used for validating the entire application workflow, the worker itself has a suite of unit and integration tests using **Vitest**. These tests cover the core functionality of the `/chat` endpoint, including rate limiting, API failure handling, and persona logic. All worker unit tests are now passing, ensuring the chatbot's stability.
 
 # 🚀 Getting Started
 
@@ -148,16 +152,14 @@ While an end-to-end (E2E) testing framework like **Playwright** is used for vali
       ```
       GEMINI_API_KEY="YOUR_GOOGLE_AI_STUDIO_KEY_HERE"
       ALLOWED_ORIGINS="http://localhost:5173,http://127.0.0.1:5173"
+      RATE_LIMIT_KV_ID="YOUR_KV_NAMESPACE_ID_HERE"
+      PROJECT_EMBEDDINGS_KV_ID="YOUR_KV_NAMESPACE_ID_HERE"
       ```
 
 3.  **Run the development servers:**
-    - In one terminal, start the frontend server:
+    - In the project root, run:
       ```bash
       npm run dev
-      ```
-    - In a second terminal, start the worker server from the root directory of the project:
-      ```bash
-      npx wrangler dev worker/src/index.ts
       ```
 
 ## Production Build
@@ -285,13 +287,13 @@ If your worker tests are failing, especially after updating the worker code, it 
 3.  **Dependency Issues:** If you encounter errors like "Expected Vitest to start running before importing modules" or "Cannot find package", it might indicate dependency conflicts or missing installations. Performing a clean `npm install` in both the root and worker directories (`npm install` and `npm install --prefix worker`) can resolve these.
 4.  **No Tests Found:** If you remove all test files and `vitest` exits with an error, you might need to add the `--passWithNoTests` flag to your test command (e.g., `npx vitest --root worker --passWithNoTests`) to allow the test suite to pass when no tests are present.
 
-## 🔒 Security Enhancements: In-Memory Rate Limiting
+## 🔒 Security Enhancements: Distributed Rate Limiting
 
-To prevent API abuse and protect Cloudflare Workers, a basic in-memory rate limiting mechanism has been implemented. This solution provides immediate protection against rapid, repeated requests from a single IP address.
+To prevent API abuse and protect Cloudflare Workers, a distributed rate limiting mechanism has been implemented using Cloudflare KV. This solution provides robust protection against rapid, repeated requests from a single IP address across all worker instances.
 
 ### How it Works:
 
-- **Mechanism:** A simple in-memory `Map` tracks request timestamps for each client IP address.
+- **Mechanism:** Cloudflare KV stores and tracks request timestamps for each client IP address, ensuring a consistent rate limit across all worker instances.
 - **Window:** Requests are counted within a `60-second` sliding window.
 - **Limit:** A maximum of `10 requests` are allowed per IP address within that window.
 - **Response:** If the limit is exceeded, a `429 Too Many Requests` HTTP status code is returned, along with a `Retry-After` header indicating when the client can safely retry.
@@ -312,11 +314,6 @@ To prevent API abuse and protect Cloudflare Workers, a basic in-memory rate limi
     - Imports `checkRateLimit` from `./rateLimiter`.
     - Applies the rate limiting check at the beginning of the `fetch` handler for the `/embed` endpoint.
     - Retrieves the client IP from the `CF-Connecting-IP` header.
-
-### Limitations:
-
-- **In-Memory (Per-Worker Instance):** This implementation is in-memory, meaning the rate limit counters are local to each running Cloudflare Worker instance. If your worker scales to multiple instances, each instance will maintain its own independent counter. This provides basic protection but is not a truly distributed rate limiter.
-- **Worker Restarts:** Counters will reset if a worker instance restarts.
 
 ### Future Considerations (Distributed Rate Limiting):
 

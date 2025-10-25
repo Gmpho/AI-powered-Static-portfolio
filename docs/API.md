@@ -22,11 +22,11 @@ This tool allows the Gemini model to search for portfolio projects based on a na
 
 ---
 
-## 📧 Display Contact Form Tool
+## 📧 Display Contact & Feedback Form Tool
 
-This tool instructs the frontend to display a contact form to the user.
+This tool instructs the frontend to display a contact or feedback form to the user.
 
-- **🎯 Trigger:** The Gemini model determines, based on the user's prompt, that the user wants to make contact (e.g., user asks "How can I contact you?").
-- **⚙️ Function:** The worker's `displayContactForm` tool signals the frontend to render an HTML contact form within the chat window.
+- **🎯 Trigger:** The Gemini model determines, based on the user's prompt, that the user wants to make contact or provide feedback (e.g., user asks "How can I contact you?" or "I want to give feedback").
+- **⚙️ Function:** The worker's `displayContactForm` tool signals the frontend to render an HTML contact or feedback form within the chat window.
 - **📥 Input:** None (no parameters needed for this tool)
 - **📤 Output:** A confirmation message to Gemini, and a signal to the frontend to display the form.
