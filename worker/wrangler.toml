@@ -18,6 +18,7 @@ inspector_port = 0
 
 [env.production]
 name = "ai-powered-static-portfolio-worker-production"
+main = "dist/index.js"
 kv_namespaces = [
   { binding = "RATE_LIMIT_KV", id = "${RATE_LIMIT_KV_ID}" },
   { binding = "PROJECT_EMBEDDINGS_KV", id = "${PROJECT_EMBEDDINGS_KV_ID}" }
