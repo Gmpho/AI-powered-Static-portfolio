@@ -26,6 +26,7 @@ interface Project {
 	RECRUITER_WHITELIST_EMAIL?: string; // Added for recruiter whitelist
 	VITE_WORKER_URL?: string; // Added VITE_WORKER_URL	        // Ensure this KV namespace is bound in your worker's environment.
 	        // If not bound, embedding-related functionalities will be disabled or throw errors.
+	ENVIRONMENT?: string;
 }
 
 interface ContactFormRequest {
