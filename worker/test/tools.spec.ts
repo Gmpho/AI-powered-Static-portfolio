@@ -6,21 +6,34 @@ import { Part } from '@google/generative-ai';
 // Mock the GoogleGenerativeAI module
 vi.mock('@google/generative-ai', async (importOriginal) => {
     const actual = await importOriginal<typeof import('@google/generative-ai')>();
+
+    const mockStream = {
+        async *[Symbol.asyncIterator]() {
+            yield { text: () => 'This is a mocked response.' };
+        },
+    };
+
+    const mockChat = {
+        sendMessageStream: vi.fn().mockResolvedValue({ stream: mockStream }),
+    };
+
+    const mockModel = {
+        startChat: vi.fn().mockReturnValue(mockChat),
+        embedContent: vi.fn((text: string) => {
+            if (text.includes('trading bot')) {
+                return { embedding: { values: [0.1, 0.2, 0.3] } };
+            }
+            if (text.includes('web development')) {
+                return { embedding: { values: [0.4, 0.5, 0.6] } };
+            }
+            return { embedding: { values: [0.0, 0.0, 0.0] } };
+        }),
+    };
+
     return {
         ...actual,
         GoogleGenerativeAI: vi.fn(() => ({
-            getGenerativeModel: vi.fn(() => ({
-                embedContent: vi.fn((text: string) => {
-                    // Return a predictable embedding based on the input text
-                    if (text.includes('trading bot')) {
-                        return { embedding: { values: [0.1, 0.2, 0.3] } };
-                    }
-                    if (text.includes('web development')) {
-                        return { embedding: { values: [0.4, 0.5, 0.6] } };
-                    }
-                    return { embedding: { values: [0.0, 0.0, 0.0] } };
-                }),
-            })),
+            getGenerativeModel: vi.fn(() => mockModel),
         })),
     };
 });
@@ -32,6 +45,7 @@ describe('handleToolCall', () => {
         vi.resetAllMocks();
         mockEnv = {
             GEMINI_API_KEY: 'test-api-key',
+            GEMINI_SYSTEM_PROMPT: 'You are a helpful assistant.',
             RATE_LIMIT_KV: { get: vi.fn(), put: vi.fn() } as any,
             PROJECT_EMBEDDINGS_KV: {
                 get: vi.fn((key: string) => {
@@ -87,10 +101,16 @@ describe('handleToolCall', () => {
                                         expect.fail('Expected result to be a FunctionResponsePart');
                                     }
                                 });
-    it('should return a Response object for displayContactForm', async () => {
+    it('should return a Part object for displayContactForm', async () => {
         const functionCall = { name: 'displayContactForm', args: {} };
         const result = await handleToolCall(functionCall, mockEnv, {});
-        expect(result).toBeInstanceOf(Response);
+        expect(result).toHaveProperty('functionResponse');
+        const partResult = result as Part;
+        if (partResult.functionResponse) {
+            expect(partResult.functionResponse.name).toBe('displayContactForm');
+        } else {
+            expect.fail('Expected result to be a FunctionResponsePart');
+        }
     });
 
     it('should return a 400 Response for an unknown tool', async () => {

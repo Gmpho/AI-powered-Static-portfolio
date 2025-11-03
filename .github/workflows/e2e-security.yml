@@ -1,0 +1,38 @@
+name: E2E Security Guardrails (PR Mocked)
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  e2e-security-guardrails:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps
+
+    - name: Run Playwright E2E Guardrails tests (Mocked)
+      run: npx playwright test tests/e2e/guardrails.spec.ts
+      env:
+        # Mock environment variables for PR testing if needed
+        VITE_WORKER_URL: http://localhost:8787 # Point to a local mock or a test worker
+        # Add other mocked env vars as necessary
+
+    - name: Upload Playwright test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: playwright-report-guardrails
+        path: playwright-report/
+        retention-days: 30

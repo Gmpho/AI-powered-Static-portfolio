@@ -1,0 +1,70 @@
+name: Integration E2E & Gemini Self-Audit
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * *' # Daily at midnight UTC
+
+jobs:
+  integration-e2e-and-audit:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps
+
+    - name: Start Worker (in background)
+      run: npm run dev --workspace=worker &
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        ALLOWED_ORIGINS: 'http://localhost:5173,http://127.0.0.1:5173'
+        RATE_LIMIT_KV_ID: '${{ secrets.RATE_LIMIT_KV_ID }}'
+        PROJECT_EMBEDDINGS_KV_ID: '${{ secrets.PROJECT_EMBEDDINGS_KV_ID }}'
+        RESUME_SIGNER_SECRET: '${{ secrets.RESUME_SIGNER_SECRET }}'
+        TURNSTILE_SECRET_KEY: '${{ secrets.TURNSTILE_SECRET_KEY }}'
+        RECRUITER_WHITELIST_EMAIL: '${{ secrets.RECRUITER_WHITELIST_EMAIL }}'
+
+    - name: Start Frontend (in background)
+      run: npm run dev --workspace=frontend &
+      env:
+        VITE_WORKER_URL: http://localhost:8787
+
+    - name: Wait for servers to be ready
+      run: sleep 10 # Give servers some time to start
+
+    - name: Run Playwright Integration E2E tests
+      run: npx playwright test
+
+    - name: Upload Playwright test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: playwright-report-integration
+        path: playwright-report/
+        retention-days: 30
+
+    - name: Run Gemini Self-Audit
+      # This step would involve a custom script or tool that interacts with the deployed worker
+      # and performs a security audit using the Gemini API.
+      # For now, this is a placeholder.
+      run: echo "Running Gemini Self-Audit... (Placeholder)"
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        WORKER_URL: http://localhost:8787 # Or the deployed worker URL
+        # Add other audit-specific env vars
+
+    - name: Fail on Audit Risk (Placeholder)
+      # This step would parse the audit results and fail the job if risk >= medium
+      run: echo "Checking audit results... (Placeholder)"
+      # Example: exit 1 if audit finds medium or high risk
