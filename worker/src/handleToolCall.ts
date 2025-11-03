@@ -49,8 +49,16 @@ export async function handleToolCall(
 
         case 'displayContactForm':
             console.log('handleToolCall: Executing displayContactForm.');
-            // This tool instructs the frontend directly, so we return a final Response.
-            return jsonResponse({ toolCall: { name: 'displayContactForm' } }, 200, corsHeaders);
+            // This tool instructs the frontend. Return a Part object for the model.
+            return {
+                functionResponse: {
+                    name: 'displayContactForm',
+                    response: {
+                        // The frontend will see this and know to render the form.
+                        status: 'success'
+                    },
+                },
+            };
 
         default:
             console.log(`handleToolCall: Unknown tool '${functionCall.name}'.`);

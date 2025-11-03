@@ -36,6 +36,8 @@ export async function projectSearch(
         const descriptionMatch = project.description.toLowerCase().includes(lowerCaseQuery);
         const tagsMatch = queryWords.some(word => project.tags.some(tag => tag.toLowerCase().includes(word)));
 
+        console.log(`projectSearch: Project ${project.id} - titleMatch: ${titleMatch}, summaryMatch: ${summaryMatch}, descriptionMatch: ${descriptionMatch}, tagsMatch: ${tagsMatch}`);
+
         return titleMatch || summaryMatch || descriptionMatch || tagsMatch;
     });
     console.log(`projectSearch: Found ${keywordSearchResults.length} projects via keyword search.`);
@@ -44,11 +46,14 @@ export async function projectSearch(
     let semanticSearchResults: Project[] = [];
     let notice: string | undefined;
     try {
-        let queryEmbedding = await embeddingService.getProjectEmbedding(`query:${query}`);
+        const sanitizedQueryForKV = query.replace(/[^a-zA-Z0-9-_]/g, '_');
+        const cacheKey = `query:${sanitizedQueryForKV}`;
+
+        let queryEmbedding = await embeddingService.getProjectEmbedding(cacheKey);
         if (!queryEmbedding) {
             queryEmbedding = await embeddingService.generateEmbedding(query);
             if (queryEmbedding) {
-                await embeddingService.storeProjectEmbedding(`query:${query}`, queryEmbedding);
+                await embeddingService.storeProjectEmbedding(cacheKey, queryEmbedding);
             }
         }
 

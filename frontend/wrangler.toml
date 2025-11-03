@@ -1,0 +1,6 @@
+name = "ai-powered-static-portfolio-worker"
+compatibility_date = "2025-09-15"
+
+kv_namespaces = [
+  { binding = "RATE_LIMIT_KV", id = "YOUR_RATE_LIMIT_KV_ID", preview_id = "rate_limit_kv_preview_id" }
+]

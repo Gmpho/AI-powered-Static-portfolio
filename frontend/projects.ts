@@ -1,9 +1,9 @@
 // --- Type Definitions ---
 export interface Project {
   id: string;
-  title: string;
-  summary: string;
-  description: string;
+  titleKey: string; // Changed to key for i18n
+  summaryKey: string; // Changed to key for i18n
+  descriptionKey: string; // Changed to key for i18n
   tags: string[];
   url: string;
 }
@@ -16,10 +16,9 @@ export interface Project {
 export const projects: Project[] = [
   {
     id: "ai-powered-portfolio",
-    title: "AI-Powered Portfolio",
-    summary: "This very portfolio, featuring a Gemini-powered chatbot.",
-    description:
-      "A portfolio website with a TypeScript-powered AI chatbot to answer questions about my work.",
+    titleKey: "project.ai-powered-portfolio.title",
+    summaryKey: "project.ai-powered-portfolio.summary",
+    descriptionKey: "project.ai-powered-portfolio.description",
     tags: [
       "TypeScript",
       "Vite",
@@ -37,10 +36,9 @@ export const projects: Project[] = [
   },
   {
     id: "crypto-pulse-ai",
-    title: "Crypto Pulse AI",
-    summary: "AI-powered trading bot dashboard for Binance.",
-    description:
-      "A modern dashboard for an AI-powered trading bot that automates Binance spot trading with advanced risk management and multi-platform control.",
+    titleKey: "project.crypto-pulse-ai.title",
+    summaryKey: "project.crypto-pulse-ai.summary",
+    descriptionKey: "project.crypto-pulse-ai.description",
     tags: [
       "Python",
       "Docker",
@@ -69,10 +67,9 @@ export const projects: Project[] = [
   },
   {
     id: "student-programming-hub",
-    title: "Student Programming Hub",
-    summary: "A modern, secure educational platform for students.",
-    description:
-      "An educational platform for students to learn HTML, programming, and web development, built with enterprise-grade security and modern web technologies.",
+    titleKey: "project.student-programming-hub.title",
+    summaryKey: "project.student-programming-hub.summary",
+    descriptionKey: "project.student-programming-hub.description",
     tags: [
       "TypeScript",
       "HTML",
@@ -89,10 +86,9 @@ export const projects: Project[] = [
   },
   {
     id: "build-bear-ai-trading-bot",
-    title: "Build Bear: AI Trading Bot",
-    summary: "AI-powered trading bot for Binance with multi-platform control.",
-    description:
-      "An advanced Binance trading bot that leverages artificial intelligence for automated trading strategies, featuring a Next.js frontend and Python backend.",
+    titleKey: "project.build-bear-ai-trading-bot.title",
+    summaryKey: "project.build-bear-ai-trading-bot.summary",
+    descriptionKey: "project.build-bear-ai-trading-bot.description",
     tags: [
       "Python",
       "Next.js",
@@ -110,10 +106,9 @@ export const projects: Project[] = [
   },
   {
     id: "instagram-automation-bot",
-    title: "Instagram Automation Bot",
-    summary: "Workflow automation bot for Instagram using n8n and dual AIs.",
-    description:
-      "An advanced Instagram automation bot using n8n with dual AI support (Claude + OpenAI) for intelligent content generation, research, and optimization.",
+    titleKey: "project.instagram-automation-bot.title",
+    summaryKey: "project.instagram-automation-bot.summary",
+    descriptionKey: "project.instagram-automation-bot.description",
     tags: [
       "Python",
       "n8n",

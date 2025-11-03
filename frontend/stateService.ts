@@ -17,6 +17,7 @@ export interface ChatMessage {
   html?: boolean; // Flag to indicate if the text is pre-formatted HTML
   isStreaming?: boolean; // New: Flag to indicate if the message is currently being streamed
   lastThoughtSignature?: ThoughtSignature; // New property
+  type?: string; // New: Optional property to categorize message types (e.g., 'contactForm')
 }
 
 /**
@@ -25,6 +26,7 @@ export interface ChatMessage {
 interface AppState {
   chatHistory: ChatMessage[];
   isLoading: boolean;
+  error: string | null; // New: Add error state
   isThinking: boolean;
   isThinkingModeEnabled: boolean; // New property
   lastThoughtSignature?: ThoughtSignature; // New property
@@ -46,6 +48,7 @@ class StateService {
   private state: AppState = {
     chatHistory: [],
     isLoading: false,
+    error: null, // New: Initialize error state
     isThinking: false,
     isThinkingModeEnabled: false, // Initialize new property
   };
@@ -82,6 +85,11 @@ class StateService {
 
   // --- State Mutation Methods ---
   // These methods are the ONLY way to change the application state.
+
+  public setError(error: string | null) {
+    this.state.error = error;
+    this.notify();
+  }
 
   public setLoading(isLoading: boolean) {
     this.state.isLoading = isLoading;
@@ -130,6 +138,13 @@ class StateService {
 
   public clearChatHistory() {
     this.state.chatHistory = [];
+    this.notify();
+    this.saveChatHistoryToSessionStorage();
+  }
+
+  // New method to directly set the chat history
+  public setHistory(history: ChatMessage[]) {
+    this.state.chatHistory = history;
     this.notify();
     this.saveChatHistoryToSessionStorage();
   }

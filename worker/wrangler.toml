@@ -7,6 +7,15 @@ kv_namespaces = [
   { binding = "PROJECT_EMBEDDINGS_KV", id = "${PROJECT_EMBEDDINGS_KV_ID}", preview_id = "${PROJECT_EMBEDDINGS_KV_ID}" }
 ]
 
-# Build step: compile TS -> worker/dist as ES modules for Wrangler
-[build]
-command = "npm --prefix worker run build"
+
+
+[vars]
+ALLOWED_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173,https://gmpho.github.io/AI-powered-Static-portfolio/"
+PROJECT_SEARCH_SIMILARITY_THRESHOLD = "0.7"
+RECRUITER_WHITELIST_EMAIL = ""
+
+[dev]
+port = 8787
+inspector_port = 0
+
+

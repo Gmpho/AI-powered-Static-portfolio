@@ -1,10 +1,9 @@
 import { GoogleGenerativeAI, Part } from '@google/generative-ai';
 import { checkRateLimit } from './rateLimiter';
-import { sanitizeOutput, checkInjection } from './guardrails'; // Import checkInjection
-import { handleToolCall } from './handleToolCall';
-import { projectSearchSchema } from './tools/projectSearch';
-import { displayContactFormSchema } from './tools/displayContactForm';
-import { contactFormSchema } from './schemas';
+import { checkGuardrails } from './guardrails'; // Import checkGuardrails
+import { ContactFormSchema, GenerateEmbeddingRequestSchema } from './schemas';
+import { handleChat } from './chat'; // Import handleChat
+import { handleResumeRequest } from './resume'; // Import handleResumeRequest
 
 interface Project {
 	title: string;
@@ -14,14 +13,18 @@ interface Project {
 	url: string;
 }
 
-export interface Env {
+	export interface Env {
 	GEMINI_API_KEY: string;
+	GEMINI_SYSTEM_PROMPT: string;
 	ALLOWED_ORIGINS?: string;
 	RATE_LIMIT_KV: KVNamespace;
 	        PROJECT_EMBEDDINGS_KV: KVNamespace;
         PROJECT_SEARCH_SIMILARITY_THRESHOLD?: string;
 	EMBEDDING_SECRET?: string; // Added EMBEDDING_SECRET
-	        // Ensure this KV namespace is bound in your worker's environment.
+	RESUME_SIGNER_SECRET?: string; // Added RESUME_SIGNER_SECRET
+	TURNSTILE_SECRET_KEY?: string; // Added for Turnstile verification
+	RECRUITER_WHITELIST_EMAIL?: string; // Added for recruiter whitelist
+	VITE_WORKER_URL?: string; // Added VITE_WORKER_URL	        // Ensure this KV namespace is bound in your worker's environment.
 	        // If not bound, embedding-related functionalities will be disabled or throw errors.
 }
 
@@ -72,7 +75,7 @@ async function validateGeminiKey(apiKey: string): Promise<boolean> {
 }
 
 // Helper: retry async operations with exponential backoff + jitter for transient errors
-async function withRetries<T>(fn: () => Promise<T>, attempts = 3, baseDelayMs = 1000): Promise<T> {
+export async function withRetries<T>(fn: () => Promise<T>, attempts = 3, baseDelayMs = 1000): Promise<T> {
   let lastErr: unknown;
   for (let i = 0; i < attempts; i++) {
     try {
@@ -90,6 +93,39 @@ async function withRetries<T>(fn: () => Promise<T>, attempts = 3, baseDelayMs = 
   throw lastErr;
 }
 
+interface TurnstileResponse {
+  success: boolean;
+}
+
+// Function to verify Cloudflare Turnstile token
+async function verifyTurnstileToken(token: string, secretKey: string, ip?: string): Promise<boolean> {
+  const formData = new FormData();
+  formData.append('secret', secretKey);
+  formData.append('response', token);
+  if (ip) {
+    formData.append('remoteip', ip);
+  }
+
+  try {
+    const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      body: formData,
+    });
+    const data = (await response.json()) as TurnstileResponse;
+    return data.success;
+  } catch (error) {
+    console.error('Turnstile verification failed:', error);
+    return false;
+  }
+}
+
+// Function to check if an email is in the recruiter whitelist
+function isRecruiterWhitelisted(email: string, whitelist: string | undefined): boolean {
+  if (!whitelist) return false;
+  const whitelistedEmails = whitelist.split(',').map(e => e.trim().toLowerCase());
+  return whitelistedEmails.includes(email.toLowerCase());
+}
+
 export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
 		console.log('--- CORS Check ---');
@@ -101,8 +137,9 @@ export default {
 		console.log('Is Origin Allowed?', isAllowed);
 		console.log('--- End CORS Check ---');
 
+		const connectSrc = `'self' https://api.cloudflare.com ${env.VITE_WORKER_URL ? new URL(env.VITE_WORKER_URL).origin : ''}`;
 		const securityHeaders: HeadersInit = {
-			'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.cloudflare.com;",
+			'Content-Security-Policy': `default-src 'self'; script-src 'self' https://www.googletagmanager.com; style-src 'self' https://fonts.googleapis.com 'sha256-k5XIPg4LZqX54os5EJ1isWXPsHx/TxPYW8FMPJXzvWU='; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src ${connectSrc};`,
 			'X-Frame-Options': 'DENY',
 			'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
 			'Referrer-Policy': 'no-referrer-when-downgrade',
@@ -112,7 +149,8 @@ export default {
 		if (allowedOrigins.includes(origin)) {
 			corsHeaders['Access-Control-Allow-Origin'] = origin;
 			corsHeaders['Access-Control-Allow-Methods'] = 'POST, GET, OPTIONS';
-			corsHeaders['Access-Control-Allow-Headers'] = 'Content-Type';
+			corsHeaders['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With';
+			corsHeaders['Access-Control-Allow-Credentials'] = 'true';
 			corsHeaders['Access-Control-Max-Age'] = '86400'; // Cache preflight requests for 24 hours
 		} else if (origin && !allowedOrigins.includes(origin)) {
 			// Explicitly block requests from disallowed origins
@@ -135,7 +173,12 @@ export default {
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
                     <title>API Status</title>
                     <style>
-                        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f2f5; }\n                        .container { text-align: center; padding: 2rem; background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }\n                        h1 { color: #1c1e21; }\n                        p { color: #606770; }\n                    </style>
+                        html, body { height: 100%; width: 100%; }
+                        body { font-family: sans-serif; display: grid; place-items: center; height: 100vh; margin: 0; background-color: #f0f2f5; }
+                        .container { max-width: 400px; margin: auto; text-align: center; padding: 2rem; background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                        h1 { color: #1c1e21; }
+                        p { color: #606770; }
+                    </style>
                 </head>
                 <body>
                     <div class="container">
@@ -176,33 +219,103 @@ export default {
 			}, securityHeaders);
 		}
 
-		        if (url.pathname === '/contact') {
-		            if (request.method !== 'POST') {
-		                return createErrorResponse('Method Not Allowed', 405, corsHeaders, securityHeaders);
-		            }
-			            try {
-			                const requestBody = await request.json();
-			                const validationResult = contactFormSchema.safeParse(requestBody);
-			
-			                if (!validationResult.success) {
-			                    return createErrorResponse(`Invalid contact form data: ${JSON.stringify(validationResult.error.flatten().fieldErrors)}`, 400, corsHeaders, securityHeaders);
-			                }
-			
-			                const { name, email, message } = validationResult.data;
-			
-							// In a real application, you would integrate with an email sending service here.
-							// For this example, we'll just simulate a successful send.
-							console.log(`Received contact form submission:\nName: ${name.replace(/\s/g, ' ')}\nEmail: ${email.replace(/\s/g, ' ')}\nMessage: ${message.replace(/\s/g, ' ')}`);
-			
-							// Simulate a delay for sending email
-							await new Promise((resolve) => setTimeout(resolve, 1000));
-			
-							// Simulate success
-							return jsonResponse({ status: 'sent' }, 200, { ...corsHeaders, ...securityHeaders });
-						} catch (error) {
-							console.error('Error processing contact form submission:', error);
-							return createErrorResponse('Sorry, I’m having trouble answering that right now.', 500, corsHeaders, securityHeaders);
-						}		}
+		        		        if (url.pathname === '/contact') {
+
+		        		            if (request.method !== 'POST') {
+
+		        		                return createErrorResponse('Method Not Allowed', 405, corsHeaders, securityHeaders);
+
+		        		            }
+
+		        			            try {
+
+		        			                const requestBody = await request.json();
+
+		        			                const validationResult = ContactFormSchema.safeParse(requestBody);
+
+		        			
+
+		        			                if (!validationResult.success) {
+
+		        			                    return createErrorResponse(`Invalid contact form data: ${JSON.stringify(validationResult.error.flatten().fieldErrors)}`, 400, corsHeaders, securityHeaders);
+
+		        			                }
+
+		        			
+
+		        			                const { name, email, message, 'cf-turnstile-response': turnstileToken } = validationResult.data;
+
+		        			
+
+		                                    // 1. Turnstile Verification
+
+		                                    if (!env.TURNSTILE_SECRET_KEY) {
+
+		                                        console.warn('TURNSTILE_SECRET_KEY is not set. Skipping Turnstile verification.');
+
+		                                    } else if (!turnstileToken) {
+
+		                                        return createErrorResponse('Turnstile token missing.', 400, corsHeaders, securityHeaders);
+
+		                                    } else {
+
+		                                        const clientIp = request.headers.get('CF-Connecting-IP') || undefined;
+
+		                                        const isTurnstileValid = await verifyTurnstileToken(turnstileToken, env.TURNSTILE_SECRET_KEY, clientIp);
+
+		                                        if (!isTurnstileValid) {
+
+		                                            return createErrorResponse('Invalid Turnstile token. Please try again.', 403, corsHeaders, securityHeaders);
+
+		                                        }
+
+		                                    }
+
+		        
+
+		                                    // 2. Recruiter Whitelist Logic
+
+		                                    const isWhitelisted = isRecruiterWhitelisted(email, env.RECRUITER_WHITELIST_EMAIL);
+
+		                                    if (isWhitelisted) {
+
+		                                        console.log(`Whitelisted recruiter email received: ${email}`);
+
+		                                        // Potentially handle whitelisted emails differently, e.g., forward to a specific inbox
+
+		                                    }
+
+		        			
+
+		        							// In a real application, you would integrate with an email sending service here.
+
+		        							// For this example, we'll just simulate a successful send.
+
+		        							console.log(`Received contact form submission:\nName: ${name.replace(/\s/g, ' ')}\nEmail: ${email.replace(/\s/g, ' ')}\nMessage: ${message.replace(/\s/g, ' ')}`);
+
+		        			
+
+		        							// Simulate a delay for sending email
+
+		        							await new Promise((resolve) => setTimeout(resolve, 1000));
+
+		        			
+
+		        							// Simulate success
+
+		        							return jsonResponse({ status: 'sent' }, 200, { ...corsHeaders, ...securityHeaders });
+
+		        						} catch (error) {
+
+		        							console.error('Error processing contact form submission:', error);
+
+		        							return createErrorResponse('Sorry, I’m having trouble answering that right now.', 500, corsHeaders, securityHeaders);
+
+		        						}		}
+
+		if (url.pathname === '/resume') {
+			return handleResumeRequest(request, env, corsHeaders, securityHeaders);
+		}
 
 		if (url.pathname === '/api/generateEmbedding') {
 			if (request.method !== 'POST') {
@@ -215,15 +328,16 @@ export default {
 			}
 
 			try {
-				const requestBody: EmbeddingRequest = await request.json();
-				const { text } = requestBody;
-
-				if (!text || typeof text !== 'string' || text.trim().length === 0) {
-					return createErrorResponse('Invalid text in request body', 400, corsHeaders, securityHeaders);
-				}
-
+				                const requestBody = await request.json();
+				                const validationResult = GenerateEmbeddingRequestSchema.safeParse(requestBody);
+				
+				                if (!validationResult.success) {
+				                    return createErrorResponse(`Invalid request body: ${JSON.stringify(validationResult.error.flatten().fieldErrors)}`, 400, corsHeaders, securityHeaders);
+				                }
+				
+				                const { text } = validationResult.data;
 				// Apply guardrails to the incoming text
-				if (checkInjection(text)) {
+				if (checkGuardrails(text)) {
 					return createErrorResponse('I am sorry, I cannot process that request.', 400, corsHeaders, securityHeaders);
 				}
 
@@ -234,191 +348,25 @@ export default {
 				const embedding = result.embedding.values;
 
 				return jsonResponse({ embedding }, 200, { ...corsHeaders, ...securityHeaders });
-			} catch (error) {
-				console.error('Error generating embedding:', error);
-				return createErrorResponse('Sorry, I’m having trouble generating the embedding right now.', 500, corsHeaders, securityHeaders);
-			}
-		}
+			            } catch (error: any) {
+							if (error.status === 429) {
+								console.warn('Quota exceeded for embedding generation.');
+								return createErrorResponse('Quota exceeded for embedding generation. Please try again later.', 429, corsHeaders, securityHeaders);
+							}
+			                console.error('Error generating embedding:', error);
+			                return createErrorResponse('Sorry, I’m having trouble generating the embedding right now.', 500, corsHeaders, securityHeaders);
+			            }		}
 
-		if (url.pathname !== '/chat') {
-			return createErrorResponse('Not Found', 404, corsHeaders, securityHeaders);
-		}
-
-		if (request.method !== 'POST') {
-			return createErrorResponse('Method Not Allowed', 405, corsHeaders, securityHeaders);
-		}
-
-		if (!env.GEMINI_API_KEY) {
-			console.error('GEMINI_API_KEY is not set.');
-
-			return createErrorResponse('Missing server configuration', 500, corsHeaders, securityHeaders);
-		}
-
-		try {
-			const requestBody: ChatRequest = await request.json();
-			                        const { prompt, persona, projects, toolResponse, history } = requestBody;
-			            
-			                        // Apply guardrails to the incoming prompt
-			                        if (prompt && checkInjection(prompt)) {
-			                            return jsonResponse({ error: "I am sorry, I cannot process that request." }, 400, { ...corsHeaders, ...securityHeaders });
-			                        }
-			            
-			                        const systemPrompt = `You are AG Gift, an innovative, witty, and insightful AI assistant, built by Gift Himself. Your mission is to engage visitors with descriptive and enthusiastic explanations, making technical topics accessible and exciting. You are professional, lively, and a bit witty.
-			            
-			            Introduce G.E.M. services as: Generative AI Engineering & Maintenance🚀😊.
-			            
-			            When discussing projects, ONLY use the provided project data below. DO NOT invent details or information not explicitly present. If a question is outside the scope of the portfolio projects, or if you cannot find relevant information within the provided data, politely state that you can only discuss the portfolio projects.
-			            
-			            Present project information in an engaging and descriptive manner, highlighting key features, technologies, and the impact of the work. When listing multiple projects, use numbered lists or bullet points, and **always list all available projects**. Keep responses concise (1-2 short paragraphs) unless the user asks for more detail.
-			            
-			            --- Available Projects ---
-			            ${projects ? projects.map(p => `Title: ${p.title}\nSummary: ${p.summary}\nDescription: ${p.description}\nTags: ${p.tags.join(', ')}\nURL: ${p.url}`).join('\n\n') : 'No project data available.'}
-			            --- End Available Projects ---
-			            `;
-			            
-			                        if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
-			                            return createErrorResponse('Invalid prompt in request body', 400, corsHeaders, securityHeaders);
-			                        }
-			            
-			                        // Use the Google Generative AI SDK
-			                        const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
-			                        console.log('Tools being sent to Gemini API:', [projectSearchSchema as any, displayContactFormSchema as any]);
-			                        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash', tools: [{ functionDeclarations: [projectSearchSchema, displayContactFormSchema] }], systemInstruction: systemPrompt });
-			            
-			                        // call generateContentStream with retries for transient 5xx errors (e.g. "model overloaded")
-			                                                                                    let stream;
-			                                                                                    try {
-			                                                                                      stream = await withRetries(() => model.generateContentStream(prompt), 3, 1000);
-			                                                                                    } catch (err) {
-			                                                                                      console.error('Retries exhausted when calling Gemini generateContentStream:', err);
-			                                                                                      // Return structured JSON error so frontend shows a clear message
-			                                                                                      return createErrorResponse(
-			                                                                                        'AI model overloaded or unavailable. Please try again later.',
-			                                                                                        503,
-			                                                                                        corsHeaders,
-			                                                                                        securityHeaders
-			                                                                                      );
-			                                                                                    }
-			                                                                        
-			                                                                                    			                        const readableStream = new ReadableStream({
-
-			                            async start(controller) {
-
-			                                const encoder = new TextEncoder();
-
-			                                let hasEnqueuedData = false;
-
-			                                try {
-
-			                                    for await (const chunk of stream.stream) {
-			                                        // Check for function calls first
-			                                        const functionCallPart = chunk.candidates?.[0]?.content?.parts?.find(
-			                                            (part: Part) => 'functionCall' in part
-			                                        );
-
-			                                        if (functionCallPart && functionCallPart.functionCall) {
-			                                            console.log('Detected function call:', functionCallPart.functionCall.name);
-			                                            const toolResult = await handleToolCall(
-			                                                functionCallPart.functionCall,
-			                                                env,
-			                                                corsHeaders
-			                                            );
-
-			                                            if (toolResult instanceof Response) {
-			                                                // If handleToolCall returns a direct Response, enqueue it and close the stream
-			                                                const responseBody = await toolResult.text();
-			                                                controller.enqueue(encoder.encode(`data: ${responseBody}\n\n`));
-			                                                controller.close();
-			                                                return;
-			                                            } else {
-			                                                // If handleToolCall returns a Part, enqueue it for the model to process
-			                                                controller.enqueue(encoder.encode(`data: ${JSON.stringify(toolResult)}\n\n`));
-			                                                hasEnqueuedData = true;
-			                                            }
-			                                        } else {
-			                                            // Otherwise, process as regular text
-			                                            const rawText = chunk.text();
-			                                            const sanitizedText = sanitizeOutput(rawText);
-
-			                                            if (sanitizedText) {
-			                                                controller.enqueue(encoder.encode(`data: ${sanitizedText}\n\n`));
-			                                                hasEnqueuedData = true;
-			                                            }
-			                                        }
-			                                    }
-
-			                                    if (!hasEnqueuedData) {
-
-			                                        controller.enqueue(encoder.encode(`data: {"error": "Gemini stream returned no data."}\n\n`));
-
-			                                                                                               }                                                                                   
-
-			                                                                                                                                                                        
-
-			                                                                                           } catch (e) {                                                                           
-
-			                                                                                               console.error('Error during Gemini stream iteration:', e);                          
-
-			                                                                                               controller.enqueue(encoder.encode(`data: {"error": "Stream error: ${e instanceof
-
-			                                     Error ? e.message : String(e)}"}\n\n`));                                                                                                       
-
-			                                                                                               controller.error(e);
-
-			                                                                                           } finally {                                                                             
-
-			                                                                                                                                                                                   
-
-			                                                                                               controller.close();
-
-			                                }
-
-			                            },
-
-			                            cancel() {
-
-			                                console.log('Stream cancelled by client.');
-
-			                            }
-
-			                        });
-
-			            
-
-			                        return new Response(readableStream, {
-
-			            
-
-			                        			                            headers: {
-
-			            
-
-			                        			                                'Content-Type': 'text/event-stream',
-
-			            
-
-			                        			                                'Cache-Control': 'no-cache',
-
-			            
-
-			                        			                                'Connection': 'keep-alive',
-
-			            
-
-			                        			                                ...corsHeaders,
-
-			            
-
-			                        			                                ...securityHeaders,
-
-			            
-
-			                        			                            },
-
-			            
-
-			                        			                        });			} catch (error) {
-				                               console.error('Error processing chat request:', error);
-				                               return createErrorResponse('Sorry, I’m having trouble answering that right now.', 503, corsHeaders, securityHeaders);
-				                       }
-				               },} satisfies ExportedHandler<Env>;
+											if (url.pathname === '/chat') {
+															
+												return handleChat(request, env, corsHeaders, securityHeaders);
+															
+											}														
+				
+																// Default to 404 Not Found for any unhandled paths
+				
+																return createErrorResponse('Not Found', 404, corsHeaders, securityHeaders);
+				
+																	}
+				
+														} satisfies ExportedHandler<Env>;

@@ -8,7 +8,7 @@ export default defineConfig({
     cloudflare(),
   ],
   root: "./frontend", // Set the root to the frontend directory
-  base: "", // Required for GitHub Pages deployment
+  base: "/AI-powered-Static-portfolio/", // Required for GitHub Pages deployment
   build: {
     outDir: "../dist", // Output to a `dist` folder in the project root
     emptyOutDir: true, // Clean the output directory before building

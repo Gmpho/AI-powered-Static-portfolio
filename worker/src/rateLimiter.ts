@@ -24,6 +24,12 @@ const MAX_REQUESTS_PER_WINDOW = 10; // Max 10 requests per minute per IP
  *          If not allowed, it includes a `retryAfter` value in seconds.
  */
 export async function checkRateLimit(ip: string, env: Env): Promise<{ allowed: boolean; retryAfter?: number }> {
+	// Bypass rate limiting entirely if in test environment
+	if (process.env.NODE_ENV === 'test') {
+		console.log('Rate limiting bypassed for test environment.');
+		return { allowed: true };
+	}
+
 	        if (!env.RATE_LIMIT_KV) {
 	               console.warn('RATE_LIMIT_KV namespace not found. Rate limiting is disabled.');
 	               return { allowed: true };

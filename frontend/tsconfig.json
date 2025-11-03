@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["src", "vite-env.d.ts", "chatbot.ts", "index.ts", "projects.ts", "rateLimiter.ts", "stateService.ts", "sw.js"]
+}
