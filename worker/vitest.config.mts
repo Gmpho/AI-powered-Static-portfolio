@@ -8,6 +8,9 @@ export default defineConfig({
         wrangler: { configPath: './wrangler.toml' },
         miniflare: {
           kvNamespaces: ['RATE_LIMIT_KV', 'PROJECT_EMBEDDINGS_KV'], // Explicitly define KV namespaces
+          bindings: {
+            ENVIRONMENT: 'test',
+          },
         },
         singleWorker: true, // Experiment with reusing worker instance
       },
