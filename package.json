@@ -10,7 +10,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test:e2e": "cross-env DEBUG=pw:webserver npx playwright test",
-    "deploy": "npm install --prefix worker && wrangler deploy worker/src/index.ts"
+    "deploy": "npm install --prefix worker && wrangler deploy --env production --var RATE_LIMIT_KV_ID:$RATE_LIMIT_KV_ID --var PROJECT_EMBEDDINGS_KV_ID:$PROJECT_EMBEDDINGS_KV_ID worker/src/index.ts"
   },
   "dependencies": {
     "@sentry/browser": "^10.17.0",

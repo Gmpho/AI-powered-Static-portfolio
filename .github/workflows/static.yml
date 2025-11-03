@@ -48,9 +48,10 @@ jobs:
 
       - name: Deploy Worker (prod)
         id: deploy_worker_step
+        working-directory: ./worker
         run: |
-          echo "Running command: npx wrangler deploy worker/dist/index.js -c worker/wrangler.toml --env production --var RATE_LIMIT_KV_ID:${{ secrets.RATE_LIMIT_KV_ID }} --var PROJECT_EMBEDDINGS_KV_ID:${{ secrets.PROJECT_EMBEDDINGS_KV_ID }}"
-          npx wrangler deploy worker/dist/index.js -c worker/wrangler.toml --env production --var RATE_LIMIT_KV_ID:${{ secrets.RATE_LIMIT_KV_ID }} --var PROJECT_EMBEDDINGS_KV_ID:${{ secrets.PROJECT_EMBEDDINGS_KV_ID }}
+          echo "Running command: npx wrangler deploy dist/index.js -c wrangler.toml --env production --var RATE_LIMIT_KV_ID:${{ secrets.RATE_LIMIT_KV_ID }} --var PROJECT_EMBEDDINGS_KV_ID:${{ secrets.PROJECT_EMBEDDINGS_KV_ID }}"
+          npx wrangler deploy dist/index.js -c wrangler.toml --env production --var RATE_LIMIT_KV_ID:${{ secrets.RATE_LIMIT_KV_ID }} --var PROJECT_EMBEDDINGS_KV_ID:${{ secrets.PROJECT_EMBEDDINGS_KV_ID }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -58,6 +59,7 @@ jobs:
           PROJECT_EMBEDDINGS_KV_ID: ${{ secrets.PROJECT_EMBEDDINGS_KV_ID }}
 
       - name: Set Secrets for Wrangler (prod)
+        working-directory: ./worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -69,8 +71,8 @@ jobs:
             exit 1
           fi
           # Put secrets into the account + use the production wrangler config explicitly
-          echo "$GEMINI_API_KEY" | npx wrangler secret put GEMINI_API_KEY --name ai-powered-static-portfolio-worker-production -c worker/wrangler.toml --env production
-          echo "$ALLOWED_ORIGINS" | npx wrangler secret put ALLOWED_ORIGINS --name ai-powered-static-portfolio-worker-production -c worker/wrangler.toml --env production
+          echo "$GEMINI_API_KEY" | npx wrangler secret put GEMINI_API_KEY --name ai-powered-static-portfolio-worker-production -c wrangler.toml --env production
+          echo "$ALLOWED_ORIGINS" | npx wrangler secret put ALLOWED_ORIGINS --name ai-powered-static-portfolio-worker-production -c wrangler.toml --env production
 
   deploy-frontend:
     needs: deploy-worker
