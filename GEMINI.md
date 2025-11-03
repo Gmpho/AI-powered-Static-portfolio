@@ -10,7 +10,8 @@ This is a client-side-only, AI-powered portfolio website. It features a conversa
 - **🎨 Project Showcase:** A clean, modern interface to display portfolio projects.
 - **🔍 Semantic Project Search:** The AI can search for projects based on natural language queries.
 - **📝 Interactive Contact & Feedback Forms:** The chatbot can display interactive contact and feedback forms for users to get in touch or provide input.
-- **🛡️ Client-Side Rate Limiting & Input Validation:** Implemented client-side rate limiting to prevent API abuse and robust input validation to ensure data integrity and security.
+- **🛡️ Enhanced Security:** Implemented security headers for both development (via Vite) and production (via Cloudflare `_headers`) to protect against common web vulnerabilities.
+- **⚡ Improved Performance & UI:** Fixed UI bugs, including the 'Flash of Unstyled Content' (FOUC), and optimized the initial page load performance.
 - **♿ Enhanced Accessibility:** The chatbot UI now includes ARIA attributes for improved accessibility, ensuring a better experience for all users.
 - **🌍 Internationalization (i18n) Ready:** The frontend is now prepared for internationalization, allowing for easy adaptation to multiple languages.
 - **💾 Conversation Persistence:** Chat history is saved to `localStorage`.
@@ -66,6 +67,7 @@ graph TD
   - **AI Integration:** Handles communication with the Cloudflare Worker, which processes and simplifies the Gemini API's raw response before sending a clean, structured response to the frontend.
   - **Orchestration Logic:** The client-side logic no longer interprets user intent for tool orchestration. Instead, it sends user prompts to the worker, which then handles tool selection and execution via the LLM.
   - **Data Persistence:** Uses the browser's `localStorage` to save and load the chat history.
+  - **Performance Optimization:** The initial page load performance has been optimized to ensure a fast and smooth user experience.
 
 ### 💾 Data Layer
 
@@ -82,9 +84,12 @@ Resume pipeline: Store resume PDFs in Cloudflare R2. The Worker must extract tex
 
 ## 🔐 API Access Model & Security
 
-`Frontend Browser -> Cloudflare Worker -> Google Gemini API`
+`Frontend Browser -> Cloudflare Worker (with Guardrails) -> Google Gemini API`
 
-> **✅ Enhanced Security:** The `GEMINI_API_KEY` and `ALLOWED_ORIGINS` are securely stored as **Cloudflare Worker secrets**, preventing their exposure. The `VITE_WORKER_URL` for the frontend is stored as a **GitHub repository secret**. This robust approach is suitable for production environments. The Cloudflare Worker also implements refined guardrails with an adjusted `TRIPWIRE` regex to prevent false positives while maintaining strong protection against sensitive content injection. The Content Security Policy (CSP) has been further hardened to mitigate XSS risks.
+**⚠️ System Warning: Guardrails are Critical!**
+The Cloudflare Worker implements robust **Guardrails** (`worker/src/guardrails.ts`) to protect against prompt injection, sensitive data exposure, and other security vulnerabilities. All incoming user prompts and outgoing AI responses are subject to these checks. Any attempt to bypass or manipulate these guardrails will result in the request being blocked.
+
+**✅ Enhanced Security:** The `GEMINI_API_KEY` and `ALLOWED_ORIGINS` are securely stored as **Cloudflare Worker secrets**, preventing their exposure. The `VITE_WORKER_URL` for the frontend is stored as a **GitHub repository secret**. This robust approach is suitable for production environments. The Cloudflare Worker also implements refined guardrails with an adjusted `TRIPWIRE` regex to prevent false positives while maintaining strong protection against sensitive content injection. Security headers have been implemented for both development (via Vite) and production (via Cloudflare `_headers`) to protect against common web vulnerabilities. The Content Security Policy (CSP) has been further hardened to mitigate XSS risks.
 
 - **Injection Detection (Guardrails):** The Worker employs guardrails (`worker/src/guardrails.ts`) to block requests containing sensitive patterns (e.g., `/curl|wget|base64|sk-|api_key=|-----BEGIN/i`) and returns a polite error message, preventing potential code injection or secret exposure. The `TRIPWIRE` regex has been refined for more accurate detection.
 
@@ -118,6 +123,14 @@ The application now uses a "tool-based" architecture where the Cloudflare Worker
 ## Path to a True Agent
 
 The current implementation is a significant step towards a true agent. The orchestration logic has been shifted from client-side keyword matching to the LLM itself, with the Cloudflare Worker acting as the agent executor.
+
+### Resume Pipeline
+
+Resume pipeline: Store resume PDFs in Cloudflare R2. The Worker must extract text server-side, generate a short KV summary for instant display, and create chunked embeddings for semantic retrieval. The frontend receives only the safe summary and a signed download link for the full PDF.
+
+### Memory & Learning
+
+Memory & Learning: Use session-level memory for short context (in-memory/Durable), and a vetted long-term memory stored as embeddings in a vector DB. New memories must pass human review before being promoted to long-term store.
 
 Memory & Learning: Use session-level memory for short context (in-memory/Durable), and a vetted long-term memory stored as embeddings in a vector DB. New memories must pass human review before being promoted to long-term store.
 
@@ -161,6 +174,10 @@ While an end-to-end (E2E) testing framework like **Playwright** is used for vali
       ```bash
       npm run dev
       ```
+
+## Production Security Headers
+
+For production deployments on Cloudflare Pages, a `_headers` file is included in the `frontend/public` directory. This file contains security headers that will be automatically applied by Cloudflare.
 
 ## Production Build
 

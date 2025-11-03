@@ -37,7 +37,8 @@ Traditional portfolios are static and passive. This project transforms the conve
 - **🎨 Dynamic Project Showcase:** A clean, modern interface designed to beautifully present diverse portfolio projects.
 - **🔍 Intelligent Semantic Search:** Leverage AI to semantically search for projects based on natural language queries, providing highly relevant results. This now includes a robust keyword fallback and graceful handling of API quota errors, ensuring search functionality remains available and user-friendly.
 - **📝 Seamless Contact & Feedback Integration:** The chatbot is designed to intuitively guide users to an interactive contact or feedback form, simplifying communication and gathering valuable insights.
-- **🛡️ Client-Side Rate Limiting & Input Validation:** Implemented client-side rate limiting to prevent API abuse and robust input validation to ensure data integrity and security.
+- **🛡️ Enhanced Security:** Implemented security headers for both development (via Vite) and production (via Cloudflare `_headers`) to protect against common web vulnerabilities.
+- **⚡ Improved Performance & UI:** Fixed UI bugs, including the 'Flash of Unstyled Content' (FOUC), and optimized the initial page load performance.
 - **♿ Enhanced Accessibility:** The chatbot UI now includes ARIA attributes for improved accessibility, ensuring a better experience for all users.
 - **🌍 Internationalization (i18n) Ready:** The frontend is now prepared for internationalization, allowing for easy adaptation to multiple languages.
 - **💾 Session-based Conversations:** Chat history is automatically saved to `sessionStorage`, ensuring continuity within a single browser tab and clearing upon tab closure. The full conversation history is now sent with each request to the worker, ensuring the AI model maintains context.
@@ -117,6 +118,7 @@ The Cloudflare Worker acts as a secure proxy and backend for AI-related function
   - **AI Integration:** Handles communication with the Cloudflare Worker, which processes and simplifies the Gemini API's raw response before sending a clean, structured response to the frontend.
   - **Orchestration Logic:** Contains the logic to interpret user intent based on keywords.
   - **Data Persistence:** Uses the browser's `localStorage` to save and load the chat history.
+  - **Performance Optimization:** The initial page load performance has been optimized to ensure a fast and smooth user experience.
 
 ### 💾 Data Layer
 
@@ -133,7 +135,7 @@ The Cloudflare Worker acts as a secure proxy and backend for AI-related function
 
 `Frontend Browser -> Cloudflare Worker -> Google Gemini API`
 
-> **✅ Enhanced Security:** The `GEMINI_API_KEY` and `ALLOWED_ORIGINS` are securely stored as **Cloudflare Worker secrets**, preventing their exposure. The `VITE_WORKER_URL` for the frontend is stored as a **GitHub repository secret`. This robust approach is suitable for production environments. The Cloudflare Worker also implements refined guardrails with an adjusted `TRIPWIRE` regex to prevent false positives while maintaining strong protection against sensitive content injection. The Content Security Policy (CSP) has been further hardened to mitigate XSS risks.
+> **✅ Enhanced Security:** The `GEMINI_API_KEY` and `ALLOWED_ORIGINS` are securely stored as **Cloudflare Worker secrets**, preventing their exposure. The `VITE_WORKER_URL` for the frontend is stored as a **GitHub repository secret`. This robust approach is suitable for production environments. The Cloudflare Worker also implements refined guardrails with an adjusted `TRIPWIRE` regex to prevent false positives while maintaining strong protection against sensitive content injection. Security headers have been implemented for both development (via Vite) and production (via Cloudflare `_headers`) to protect against common web vulnerabilities. The Content Security Policy (CSP) has been further hardened to mitigate XSS risks.
 
 ## 🧪 Testing
 
@@ -192,6 +194,9 @@ To ensure the reliability and quality of the application, a comprehensive testin
      ```bash
      npm run dev
      ```
+
+5. **Production Security Headers:**
+   - For production deployments on Cloudflare Pages, a `_headers` file is included in the `frontend/public` directory. This file contains security headers that will be automatically applied by Cloudflare.
 
 For detailed troubleshooting, refer to the [Debugging and Troubleshooting](GEMINI.md#debugging-and-troubleshooting) section in `GEMINI.md` and the [Known Issues](docs/KNOWN_ISSUES.md) document for specific resolutions.
 

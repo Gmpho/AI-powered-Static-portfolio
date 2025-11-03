@@ -31,7 +31,7 @@ This document provides a comprehensive, file-by-file review of the AI-Powered St
     *   **Initialization:** `DOMContentLoaded` listener sets up initial UI, loads history/theme, attaches event listeners, populates static text content using i18n, and registers a service worker.
 *   **Logic Flow:** Event-driven UI updates based on `stateService` changes. Asynchronous communication with worker via `sendPrompt`. Client-side rate limiting and input validation are applied before sending prompts.
 *   **Interactions:** `chatbot.ts` (communication), `stateService.ts` (state management), `projects.ts` (data), `index.css` (styling), Cloudflare Worker (indirectly), `i18n.ts` (translations).
-*   **Best Practices:** Vanilla JS/TS, reactive state management, robust SSE parsing, XSS prevention via `DOMPurify`, modularity, accessibility (ARIA), internationalization, client-side rate limiting, PWA readiness.
+*   **Best Practices:** Vanilla JS/TS, reactive state management, robust SSE parsing, XSS prevention via `DOMPurify`, modularity, accessibility (ARIA), internationalization, client-side rate limiting, PWA readiness, performance optimization.
 *   **Considerations:** Simulated contact form submission could be integrated with a backend endpoint for actual email sending.
 
 ---
@@ -116,7 +116,7 @@ This document provides a comprehensive, file-by-file review of the AI-Powered St
         *   **Security Headers:** Applies a hardened Content Security Policy (CSP), `X-Frame-Options`, `Strict-Transport-Security`, `Referrer-Policy`, and `Cross-Origin-Embedder-Policy` to all responses.
 *   **Logic Flow:** Centralized request processing, security enforcement, AI interaction, and tool orchestration.
 *   **Interactions:** `rateLimiter.ts`, `guardrails.ts`, `embed.ts`, `tools/projectSearch.ts`, `tools/displayContactForm.ts`, `handleToolCall.ts`, `projectData.ts`, Google Gemini API.
-*   **Best Practices:** API Gateway, serverless, robust security (CORS, rate limiting, injection/sanitization, hardened CSP), streaming API (SSE), Gemini function calling, API call resilience.
+*   **Best Practices:** API Gateway, serverless, robust security (CORS, rate limiting, injection/sanitization, hardened CSP, security headers), streaming API (SSE), Gemini function calling, API call resilience.
 *   **Considerations:** Tool call recursion handling (currently one level deep), logging granularity, system prompt management.
 
 ---

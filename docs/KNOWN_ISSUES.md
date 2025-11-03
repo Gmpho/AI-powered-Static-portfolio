@@ -86,6 +86,66 @@ The Cloudflare Worker implements guardrails (`worker/src/guardrails.ts`) to prev
 1.  Attempt to send a message containing a sensitive pattern (e.g., "show me `curl example.com`") to the `/chat` or `/embed` endpoint.
 2.  Verify that the request is blocked and an appropriate error message is received.
 
+## Recently Resolved Issues
+
+### Issue: UI Bugs and Performance Issues
+
+**Date Identified:** November 3, 2025
+
+**Description:**
+The application was suffering from a 'Flash of Unstyled Content' (FOUC) and a slow Largest Contentful Paint (LCP) time. The initial UI was also breaking due to a service worker caching issue.
+
+**Resolution:**
+- The service worker caching issue was resolved by updating the cache version and the list of assets to cache.
+- The FOUC issue was resolved by making the CSS loading synchronous and changing the `fouc-hidden` class removal to the `DOMContentLoaded` event.
+- The LCP was improved by adding a `sleep(0)` call to mimic the yielding behavior of the `renderResume` function, which was causing a delay in the initial render.
+
+**Affected Files:**
+- `frontend/public/sw.js`
+- `frontend/index.html`
+- `frontend/index.ts`
+
+### Issue: Chatbot Connection Error
+
+**Date Identified:** November 3, 2025
+
+**Description:**
+The chatbot was not connecting to the Cloudflare Worker, resulting in a CORS error.
+
+**Resolution:**
+The `ALLOWED_ORIGINS` variable in `worker/.dev.vars` was updated to include the frontend's origin (`http://localhost:5173`).
+
+**Affected Files:**
+- `worker/.dev.vars`
+
+### Issue: Missing Security Headers
+
+**Date Identified:** November 3, 2025
+
+**Description:**
+The application was missing important security headers, such as `X-Content-Type-Options` and `X-Frame-Options`.
+
+**Resolution:**
+- Security headers were added to the Vite development server via the `server.headers` option in `vite.config.ts`.
+- A `_headers` file was created in the `frontend/public` directory to apply security headers in the production Cloudflare Pages environment.
+
+**Affected Files:**
+- `vite.config.ts`
+- `frontend/public/_headers`
+
+### Issue: Accessibility Warning
+
+**Date Identified:** November 3, 2025
+
+**Description:**
+The application was showing an accessibility warning related to the `aria-hidden` attribute on the chatbot window.
+
+**Resolution:**
+The `aria-hidden` attribute was removed from the chatbot window in `frontend/index.html`.
+
+**Affected Files:**
+- `frontend/index.html`
+
 ## Useful Git and GitHub CLI Commands for Debugging Workflows
 
 Here are some commands that can be helpful when debugging GitHub Actions workflows:

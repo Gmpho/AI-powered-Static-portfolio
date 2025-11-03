@@ -29,6 +29,9 @@ Add the following repository secrets (Settings → Secrets → Actions):
 
 Do not commit secrets or production keys to the repository.
 
+**Production Security Headers:**
+For production deployments on Cloudflare Pages, a `_headers` file is included in the `frontend/public` directory. This file contains security headers that will be automatically applied by Cloudflare.
+
 1. Create Cloudflare KV namespaces and Secrets (one-time)
    Run locally (PowerShell / pwsh) for each KV namespace:
 

@@ -60,6 +60,7 @@ If you prefer a static image, the repository also includes `Architecturemd.svg` 
   - **Client-Side Rate Limiting & Input Validation:** Implements client-side rate limiting to prevent API abuse and robust input validation to ensure data integrity and security.
   - **Internationalization (i18n):** The frontend is now prepared for internationalization, allowing for easy adaptation to multiple languages.
   - **User Feedback:** Integrates a mechanism for users to provide feedback via the chatbot.
+  - **Performance Optimization:** The initial page load performance has been optimized to ensure a fast and smooth user experience.
 
 ### 💾 Data Layer
 

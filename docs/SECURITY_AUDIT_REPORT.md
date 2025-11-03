@@ -26,9 +26,9 @@ During the development process, several critical security enhancements were impl
     *   **Description:** A distributed, KV-backed rate-limiting mechanism was implemented in `worker/src/rateLimiter.ts` and integrated into `worker/src/index.ts`.
     *   **Impact:** Protects the worker API from abuse and denial-of-service attempts by limiting requests per IP address across all worker instances.
 
-*   **Secure Environment Variable Management:**
-    *   **Description:** Hardcoded KV Namespace IDs in `worker/wrangler.toml` were replaced with environment variable placeholders (`${RATE_LIMIT_KV_ID}`, `${PROJECT_EMBEDDINGS_KV_ID}`).
-    *   **Impact:** Ensures sensitive configuration values are not hardcoded and are securely managed as secrets in Cloudflare Worker settings, improving deployment flexibility and security.
+*   **Security Headers (Vite and Cloudflare):**
+    *   **Description:** Security headers (`X-Content-Type-Options`, `X-Frame-Options`, etc.) were added for both the Vite development server (in `vite.config.ts`) and the production Cloudflare Pages deployment (via a `_headers` file).
+    *   **Impact:** Protects the application against common web vulnerabilities like clickjacking and MIME-sniffing.
 
 ## 2. Manual Security Audit Findings
 

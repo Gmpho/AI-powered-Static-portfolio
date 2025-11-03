@@ -45,6 +45,10 @@ A foundational test suite covers the application's main features:
   - **Trigger:** Send a message containing known sensitive patterns (e.g., `curl`, `api_key=`, `-----BEGIN`).
   - **Expected Result:** The application should display an error message indicating that sensitive content was detected and the request was blocked, without processing the message further.
 
+- **🎨 Project Showcase:**
+  - **Trigger:** User clicks the "Load More" button.
+  - **Expected Result:** The test asserts that more projects are loaded and displayed on the page.
+
 ## 🧪 Worker Unit Testing with Vitest
 
 Unit and integration tests for the Cloudflare Worker are implemented using Vitest. These tests ensure the individual components and logic of the worker function correctly and reliably.
