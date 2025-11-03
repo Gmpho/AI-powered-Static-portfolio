@@ -28,5 +28,19 @@ This tool instructs the frontend to display a contact or feedback form to the us
 
 - **🎯 Trigger:** The Gemini model determines, based on the user's prompt, that the user wants to make contact or provide feedback (e.g., user asks "How can I contact you?" or "I want to give feedback").
 - **⚙️ Function:** The worker's `displayContactForm` tool signals the frontend to render an HTML contact or feedback form within the chat window.
+- **🛡️ Security Enhancements:** The `/contact` endpoint now includes **Cloudflare Turnstile verification** to prevent spam and abuse. Additionally, it implements **recruiter whitelist logic** to potentially handle messages from pre-approved recruiters differently.
 - **📥 Input:** None (no parameters needed for this tool)
 - **📤 Output:** A confirmation message to Gemini, and a signal to the frontend to display the form.
+
+---
+
+## 📄 Resume Endpoint
+
+This endpoint provides a short summary of the resume and a securely signed URL for downloading the full PDF.
+
+- **🎯 Endpoint:** `/resume`
+- **⚙️ Function:** Fetches resume data, generates a short summary, and creates a time-limited, signed URL for the resume PDF stored in Cloudflare R2.
+- **📥 Input:** GET request (no body parameters).
+- **📤 Output:** An object containing:
+    - `summary`: An object with `title`, `experience`, and `skills`.
+    - `downloadUrl`: A string representing the signed URL to the resume PDF.

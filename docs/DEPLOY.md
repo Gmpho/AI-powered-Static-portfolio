@@ -23,11 +23,14 @@ Add the following repository secrets (Settings → Secrets → Actions):
 - `VITE_WORKER_URL` — The URL of your deployed Cloudflare Worker (used by the frontend build)
 - `RATE_LIMIT_KV_ID` — The ID of your `RATE_LIMIT_KV` namespace (for production deployment)
 - `PROJECT_EMBEDDINGS_KV_ID` — The ID of your `PROJECT_EMBEDDINGS_KV` namespace (for production deployment)
+- `RESUME_SIGNER_SECRET` — A strong, random key for signing resume download URLs.
+- `TURNSTILE_SECRET_KEY` — The secret key for Cloudflare Turnstile verification.
+- `RECRUITER_WHITELIST_EMAIL` — Comma-separated list of whitelisted recruiter email addresses.
 
 Do not commit secrets or production keys to the repository.
 
-1. Create Cloudflare KV namespaces (one-time)
-   Run locally (PowerShell / pwsh) for each namespace:
+1. Create Cloudflare KV namespaces and Secrets (one-time)
+   Run locally (PowerShell / pwsh) for each KV namespace:
 
 ```pwsh
 npx wrangler kv:namespace create "RATE_LIMIT_KV"
@@ -35,6 +38,16 @@ npx wrangler kv:namespace create "PROJECT_EMBEDDINGS_KV"
 ```
 
 Copy the `id` from the command output for each and save it to your secure secrets store (or GitHub secrets `RATE_LIMIT_KV_ID` and `PROJECT_EMBEDDINGS_KV_ID`). These KV namespaces will be used by the Worker for distributed rate limiting and project embeddings.
+
+For `RESUME_SIGNER_SECRET` and `TURNSTILE_SECRET_KEY`, these are secrets, not KV namespaces. You should generate strong, random values for these and add them as secrets to your Cloudflare Worker and GitHub repository.
+
+To set a secret for your Cloudflare Worker locally (for development):
+```pwsh
+cd worker
+npx wrangler secret put RESUME_SIGNER_SECRET
+npx wrangler secret put TURNSTILE_SECRET_KEY
+npx wrangler secret put RECRUITER_WHITELIST_EMAIL # If you want to set a default whitelist locally
+```
 
 % DEPLOYMENT GUIDE (synchronized with GEMINI.md)
 
@@ -59,6 +72,9 @@ This deployment guide is kept in sync with `GEMINI.md` (the project source-of-tr
 - `RATE_LIMIT_KV_ID` — KV Namespace ID for production
 - `PROJECT_EMBEDDINGS_KV_ID` — KV Namespace ID for production
 - `GEMINI_API_KEY` — Google Gemini API key for the Worker
+- `RESUME_SIGNER_SECRET` — A strong, random key for signing resume download URLs.
+- `TURNSTILE_SECRET_KEY` — The secret key for Cloudflare Turnstile verification.
+- `RECRUITER_WHITELIST_EMAIL` — Comma-separated list of whitelisted recruiter email addresses.
 
 - Configure the frontend to call the local worker by setting `VITE_WORKER_URL` or similar in `.env` (Vite picks up `.env` variables).
 
@@ -111,7 +127,7 @@ command = "npm ci && npm run build"
 
 In CI you can set the env mapping for `CLOUDFLARE_ACCOUNT_ID`, `RATE_LIMIT_KV_ID`, and `PROJECT_EMBEDDINGS_KV_ID` via GitHub Actions secrets.
 
-**5) Managing Worker secrets (GEMINI_API_KEY, ALLOWED_ORIGINS, KV_NAMESPACE_IDs)**
+**5) Managing Worker secrets (GEMINI_API_KEY, ALLOWED_ORIGINS, KV_NAMESPACE_IDs, RESUME_SIGNER_SECRET, TURNSTILE_SECRET_KEY, RECRUITER_WHITELIST_EMAIL)**
 During interactive local development, these are typically set in `worker/.dev.vars`.
 
 ```pwsh
@@ -120,6 +136,9 @@ GEMINI_API_KEY="YOUR_GOOGLE_AI_STUDIO_KEY_HERE"
 ALLOWED_ORIGINS="http://localhost:5173,http://127.0.0.1:5173"
 RATE_LIMIT_KV_ID="YOUR_KV_NAMESPACE_ID_HERE"
 PROJECT_EMBEDDINGS_KV_ID="YOUR_KV_NAMESPACE_ID_HERE"
+RESUME_SIGNER_SECRET="YOUR_RESUME_SIGNER_SECRET_HERE"
+TURNSTILE_SECRET_KEY="YOUR_TURNSTILE_SECRET_KEY_HERE"
+RECRUITER_WHITELIST_EMAIL="your_email@example.com,another_email@example.com"
 ```
 
 In GitHub Actions, you can:
