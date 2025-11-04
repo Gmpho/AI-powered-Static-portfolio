@@ -4,13 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+
     "vite-dev": "vite",
     "worker-dev": "wrangler dev worker/src/index.ts",
     "dev": "concurrently \"npm run vite-dev\" \"npm run worker-dev\"",
     "build": "vite build",
-    "preview": "vite preview",
-    "test:e2e": "cross-env DEBUG=pw:webserver npx playwright test",
-    "deploy": "npm install --prefix worker && wrangler deploy --env production worker/src/index.ts"
+    "preview":"npm run build && vite preview",
+    "deploy": "npm install --prefix worker && wrangler deploy --env production worker/src/index.ts" 
   },
   "dependencies": {
     "@sentry/browser": "^10.17.0",
