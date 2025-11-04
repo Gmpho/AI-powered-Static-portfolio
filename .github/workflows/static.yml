@@ -35,10 +35,7 @@ jobs:
       - name: Build Worker
         run: npm run build --prefix worker
 
-      - name: Debug Secrets
-        run: |
-          echo "RATE_LIMIT_KV_ID: ${{ secrets.RATE_LIMIT_KV_ID }}"
-          echo "PROJECT_EMBEDDINGS_KV_ID: ${{ secrets.PROJECT_EMBEDDINGS_KV_ID }}"
+
 
       - name: Deploy Worker
         id: deploy_worker_step
@@ -46,12 +43,9 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy
+          command: deploy --var RATE_LIMIT_KV_ID="${{ secrets.RATE_LIMIT_KV_ID }}" --var PROJECT_EMBEDDINGS_KV_ID="${{ secrets.PROJECT_EMBEDDINGS_KV_ID }}"
           workingDirectory: ./worker
           environment: production
-        env:
-          RATE_LIMIT_KV_ID: ${{ secrets.RATE_LIMIT_KV_ID }}
-          PROJECT_EMBEDDINGS_KV_ID: ${{ secrets.PROJECT_EMBEDDINGS_KV_ID }}
 
 
 
