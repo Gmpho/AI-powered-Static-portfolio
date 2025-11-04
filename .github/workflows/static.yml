@@ -43,7 +43,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --var RATE_LIMIT_KV_ID="${{ secrets.RATE_LIMIT_KV_ID }}" --var PROJECT_EMBEDDINGS_KV_ID="${{ secrets.PROJECT_EMBEDDINGS_KV_ID }}"
+          command: deploy --config ./worker/wrangler.toml --var RATE_LIMIT_KV_ID="${{ secrets.RATE_LIMIT_KV_ID }}" --var PROJECT_EMBEDDINGS_KV_ID="${{ secrets.PROJECT_EMBEDDINGS_KV_ID }}"
           workingDirectory: ./worker
           environment: production
 
