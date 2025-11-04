@@ -35,6 +35,11 @@ jobs:
       - name: Build Worker
         run: npm run build --prefix worker
 
+      - name: Debug Secrets
+        run: |
+          echo "RATE_LIMIT_KV_ID: ${{ secrets.RATE_LIMIT_KV_ID }}"
+          echo "PROJECT_EMBEDDINGS_KV_ID: ${{ secrets.PROJECT_EMBEDDINGS_KV_ID }}"
+
       - name: Deploy Worker
         id: deploy_worker_step
         uses: cloudflare/wrangler-action@v3
