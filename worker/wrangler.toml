@@ -1,6 +1,7 @@
 name = "ai-powered-static-portfolio-worker"
 main = "src/index.ts"
 compatibility_date = "2025-09-15"
+keep_vars = true
 
 [dev]
 port = 8787
