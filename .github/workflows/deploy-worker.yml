@@ -1,0 +1,43 @@
+name: Deploy to Cloudflare Workers
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - 'worker/**' # Trigger only if changes are in the worker directory
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy to Cloudflare Workers
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc' # Uses .nvmrc for Node.js version
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci # Using npm ci for clean installs
+
+      - name: Build project
+        run: npm run build --prefix worker # Assuming build script is in worker/package.json
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }} # Added accountId
+          command: deploy
+          workingDirectory: ./worker # Added workingDirectory
+        env: # Added env block for KV IDs
+          RATE_LIMIT_KV_ID: ${{ secrets.RATE_LIMIT_KV_ID }}
+          PROJECT_EMBEDDINGS_KV_ID: ${{ secrets.PROJECT_EMBEDDINGS_KV_ID }}
