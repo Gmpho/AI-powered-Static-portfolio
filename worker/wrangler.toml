@@ -25,5 +25,3 @@ kv_namespaces = [
   { binding = "PROJECT_EMBEDDINGS_KV", id = "${PROJECT_EMBEDDINGS_KV_ID}" }
 ]
 vars = { ALLOWED_ORIGINS = "https://gmpho.github.io/AI-powered-Static-portfolio/", PROJECT_SEARCH_SIMILARITY_THRESHOLD = "0.7", RECRUITER_WHITELIST_EMAIL = "" }
-
-
