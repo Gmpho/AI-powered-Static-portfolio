@@ -43,7 +43,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --kv RATE_LIMIT_KV=${{ secrets.RATE_LIMIT_KV_ID }} --kv PROJECT_EMBEDDINGS_KV=${{ secrets.PROJECT_EMBEDDINGS_KV_ID }}
+          command: deploy
           workingDirectory: ./worker
           environment: production
 
