@@ -42,3 +42,4 @@ jobs:
         env: # Added env block for KV IDs
           RATE_LIMIT_KV_ID: ${{ secrets.RATE_LIMIT_KV_ID }}
           PROJECT_EMBEDDINGS_KV_ID: ${{ secrets.PROJECT_EMBEDDINGS_KV_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
