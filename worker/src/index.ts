@@ -130,8 +130,15 @@ function isRecruiterWhitelisted(email: string, whitelist: string | undefined): b
 export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
 		const origin = request.headers.get('Origin') || '';
-		const allowedOrigins = (env.ALLOWED_ORIGINS || 'https://gmpho.github.io", "http://localhost:5173').split(',').map(s => s.trim()).filter(Boolean);
+		const allowedOrigins = (env.ALLOWED_ORIGINS || 'https://gmpho.github.io, http://localhost:5173').split(',').map(s => s.trim()).filter(Boolean);
 		const isAllowed = origin && (allowedOrigins.includes(origin) || allowedOrigins.includes('*'));
+
+		// Debug logs for CORS
+		console.log('Request origin:', origin);
+		console.log('Allowed origins:', allowedOrigins);
+		console.log('Is origin allowed:', isAllowed);
+		console.log('Request method:', request.method);
+		console.log('Request URL:', request.url);
 
 		const connectSrc = `'self' https://api.cloudflare.com ${env.VITE_WORKER_URL ? new URL(env.VITE_WORKER_URL).origin : ''}`;
 		const securityHeaders: HeadersInit = {
