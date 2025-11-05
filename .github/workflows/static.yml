@@ -46,6 +46,9 @@ jobs:
           command: deploy
           workingDirectory: ./worker
           environment: production
+        env:
+          RATE_LIMIT_KV_ID: ${{ secrets.RATE_LIMIT_KV_ID }}
+          PROJECT_EMBEDDINGS_KV_ID: ${{ secrets.PROJECT_EMBEDDINGS_KV_ID }}
 
 
 
