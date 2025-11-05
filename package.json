@@ -10,8 +10,9 @@
     "dev": "concurrently \"npm run vite-dev\" \"npm run worker-dev\"",
     "build": "vite build",
     "preview":"npm run build && vite preview",
-    "deploy": "npm install --prefix worker && wrangler deploy --env production worker/src/index.ts" 
-  },
+        "deploy": "npm install --prefix worker && wrangler deploy --env production worker/src/index.ts",
+        "cf-typegen": "wrangler types"
+      },
   "dependencies": {
     "@sentry/browser": "^10.17.0",
     "concurrently": "^9.2.1",
