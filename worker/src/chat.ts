@@ -4,7 +4,7 @@ import { handleToolCall } from './handleToolCall';
 import { projectSearchSchema } from './tools/projectSearch';
 import { displayContactFormSchema } from './tools/displayContactForm';
 import { sanitizeOutput } from './security-utils';
-import { jsonResponse, createErrorResponse, Env, withRetries } from './index';
+import { createErrorResponse, Env, withRetries } from './index';
 import { ChatEndpointRequestSchema } from './schemas';
 
 // Define the structure of the chat request from the frontend.
@@ -18,6 +18,10 @@ export async function handleChat(request: Request, env: Env, corsHeaders: Header
         return createErrorResponse('Method Not Allowed', 405, corsHeaders, securityHeaders);
     }
 
+    // Diagnostic logging for Gemini configuration
+    console.log('GEMINI_API_KEY present:', !!env.GEMINI_API_KEY);
+    console.log('GEMINI_SYSTEM_PROMPT present:', !!env.GEMINI_SYSTEM_PROMPT);
+
     try {
         const requestBody = await request.json();
         const validationResult = ChatEndpointRequestSchema.safeParse(requestBody);
@@ -30,6 +34,11 @@ export async function handleChat(request: Request, env: Env, corsHeaders: Header
 
         if (checkGuardrails(prompt)) {
             return createErrorResponse('I am sorry, I cannot process that request.', 400, corsHeaders, securityHeaders);
+        }
+
+        if (!env.GEMINI_API_KEY) {
+            console.error('GEMINI_API_KEY is missing from environment');
+            return createErrorResponse('Server configuration error: Gemini API key not configured', 500, corsHeaders, securityHeaders);
         }
 
         const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
