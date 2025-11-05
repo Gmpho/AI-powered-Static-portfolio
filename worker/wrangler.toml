@@ -2,11 +2,6 @@ name = "ai-powered-static-portfolio-worker"
 main = "src/index.ts"
 compatibility_date = "2025-09-15"
 
-kv_namespaces = [
-  { binding = "RATE_LIMIT_KV", id = "${RATE_LIMIT_KV_ID}", preview_id = "${RATE_LIMIT_KV_ID}" },
-  { binding = "PROJECT_EMBEDDINGS_KV", id = "${PROJECT_EMBEDDINGS_KV_ID}", preview_id = "${PROJECT_EMBEDDINGS_KV_ID}" }
-]
-
 [dev]
 port = 8787
 inspector_port = 0
@@ -19,11 +14,6 @@ RECRUITER_WHITELIST_EMAIL = ""
 [env.production]
 name = "ai-powered-static-portfolio-worker"
 main = "dist/index.js"
-
-kv_namespaces = [
-  { binding = "RATE_LIMIT_KV", id = "${RATE_LIMIT_KV_ID}" },
-  { binding = "PROJECT_EMBEDDINGS_KV", id = "${PROJECT_EMBEDDINGS_KV_ID}" }
-]
 
 [env.production.vars]
 ALLOWED_ORIGINS = "https://gmpho.github.io/AI-powered-Static-portfolio/"
