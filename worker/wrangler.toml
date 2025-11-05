@@ -10,12 +10,3 @@ inspector_port = 0
 ALLOWED_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173,https://gmpho.github.io/AI-powered-Static-portfolio/"
 PROJECT_SEARCH_SIMILARITY_THRESHOLD = "0.7"
 RECRUITER_WHITELIST_EMAIL = ""
-
-[env.production]
-name = "ai-powered-static-portfolio-worker"
-main = "dist/index.js"
-
-[env.production.vars]
-ALLOWED_ORIGINS = "https://gmpho.github.io/AI-powered-Static-portfolio/"
-PROJECT_SEARCH_SIMILARITY_THRESHOLD = "0.7"
-RECRUITER_WHITELIST_EMAIL = ""
