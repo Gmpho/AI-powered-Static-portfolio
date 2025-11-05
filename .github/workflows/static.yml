@@ -44,6 +44,9 @@ jobs:
         run: npm install
         working-directory: frontend
 
+      - name: Clean build directory
+        run: rm -rf dist
+
       - name: Build Frontend
         run: npm run build
         env:
@@ -51,9 +54,9 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
+        if: success()
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
           path: './dist'
       - name: Deploy to GitHub Pages
         id: deployment
