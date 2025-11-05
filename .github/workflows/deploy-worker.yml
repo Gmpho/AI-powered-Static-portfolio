@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   deploy:
@@ -22,7 +22,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc' # Uses .nvmrc for Node.js version
+          node-version: 20 # Fixed Node.js version
           cache: 'npm'
 
       - name: Install dependencies
