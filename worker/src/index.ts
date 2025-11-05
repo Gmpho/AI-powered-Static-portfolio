@@ -129,14 +129,9 @@ function isRecruiterWhitelisted(email: string, whitelist: string | undefined): b
 
 export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-		console.log('--- CORS Check ---');
 		const origin = request.headers.get('Origin') || '';
-		console.log('Request Origin:', origin);
 		const allowedOrigins = (env.ALLOWED_ORIGINS || 'http://localhost:5173,http://127.0.0.1:5173').split(',').map(s => s.trim()).filter(Boolean);
-		console.log('Allowed Origins Array:', allowedOrigins);
 		const isAllowed = origin && (allowedOrigins.includes(origin) || allowedOrigins.includes('*'));
-		console.log('Is Origin Allowed?', isAllowed);
-		console.log('--- End CORS Check ---');
 
 		const connectSrc = `'self' https://api.cloudflare.com ${env.VITE_WORKER_URL ? new URL(env.VITE_WORKER_URL).origin : ''}`;
 		const securityHeaders: HeadersInit = {
@@ -146,21 +141,28 @@ export default {
 			'Referrer-Policy': 'no-referrer-when-downgrade',
 			'Cross-Origin-Embedder-Policy': 'require-corp',
 		};
+
 		const corsHeaders: HeadersInit = {};
-		if (allowedOrigins.includes(origin)) {
+		if (isAllowed) {
 			corsHeaders['Access-Control-Allow-Origin'] = origin;
-			corsHeaders['Access-Control-Allow-Methods'] = 'POST, GET, OPTIONS';
+			corsHeaders['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS';
 			corsHeaders['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With';
 			corsHeaders['Access-Control-Allow-Credentials'] = 'true';
 			corsHeaders['Access-Control-Max-Age'] = '86400'; // Cache preflight requests for 24 hours
-		} else if (origin && !allowedOrigins.includes(origin)) {
+		} else if (origin && !isAllowed) {
 			// Explicitly block requests from disallowed origins
 			return createErrorResponse('Forbidden', 403, corsHeaders, securityHeaders);
 		}
 
+		// Handle preflight
 		if (request.method === 'OPTIONS') {
-			// Include security headers on preflight as well
-			return new Response(null, { headers: { ...corsHeaders, ...securityHeaders } });
+			return new Response(null, {
+				status: 204,
+				headers: {
+					...corsHeaders,
+					...securityHeaders,
+				},
+			});
 		}
 
 		const url = new URL(request.url);
