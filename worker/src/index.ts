@@ -130,16 +130,15 @@ function isRecruiterWhitelisted(email: string, whitelist: string | undefined): b
 export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
 		const origin = request.headers.get('Origin') || '';
-		const allowedOrigins = (env.ALLOWED_ORIGINS || 'https://gmpho.github.io, http://localhost:5173').split(',').map(s => s.trim()).filter(Boolean);
+		const allowedOrigins = (env.ALLOWED_ORIGINS || 'https://gmpho.github.io').split(',').map(s => s.trim()).filter(Boolean);
 		const isAllowed = origin && (allowedOrigins.includes(origin) || allowedOrigins.includes('*'));
 
-		// Debug logs for CORS
-		console.log('Request origin:', origin);
-		console.log('Allowed origins:', allowedOrigins);
-		console.log('Is origin allowed:', isAllowed);
-		console.log('Request method:', request.method);
-		console.log('Request URL:', request.url);
-
+		    console.log('--- CORS DEBUGGING ---');
+		    console.log(`Request Origin: ${origin}`);
+		    console.log(`Allowed Origins from Env: ${env.ALLOWED_ORIGINS}`);
+		    console.log(`Parsed Allowed Origins: ${allowedOrigins.join(', ')}`);
+		    console.log(`Is Origin Allowed: ${isAllowed}`);
+		    console.log('----------------------');
 		const connectSrc = `'self' https://api.cloudflare.com ${env.VITE_WORKER_URL ? new URL(env.VITE_WORKER_URL).origin : ''}`;
 		const securityHeaders: HeadersInit = {
 			'Content-Security-Policy': `default-src 'self'; script-src 'self' https://www.googletagmanager.com; style-src 'self' https://fonts.googleapis.com 'sha256-k5XIPg4LZqX54os5EJ1isWXPsHx/TxPYW8FMPJXzvWU='; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src ${connectSrc};`,
