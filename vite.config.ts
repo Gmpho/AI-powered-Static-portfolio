@@ -8,9 +8,7 @@ export default defineConfig(({ command }) => {
   const base = isProduction ? "/AI-powered-Static-portfolio/" : "";
 
   return {
-    plugins: [
-      cloudflare(),
-    ],
+    plugins: [],
     root: "./frontend", // Set the root to the frontend directory
     base: base, // Dynamically set base path
     build: {

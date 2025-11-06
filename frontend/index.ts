@@ -14,7 +14,7 @@ async function sendContactFormToWorker(
   email: string,
   message: string,
 ): Promise<ContactFormWorkerResponse> {
-  const workerUrl = import.meta.env.VITE_WORKER_URL;
+  const workerUrl = import.meta.env.VITE_WORKER_URL?.replace(/\/$/, '');
 
   if (!workerUrl) {
     console.error("Configuration error: VITE_WORKER_URL is not set.");
