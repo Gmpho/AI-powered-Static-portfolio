@@ -150,7 +150,7 @@ export default {
 
 		const corsHeaders: HeadersInit = {};
 		if (isAllowed) {
-			            corsHeaders['Access-Control-Allow-Origin'] = '*';			corsHeaders['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS';
+			            corsHeaders['Access-Control-Allow-Origin'] = origin;			corsHeaders['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS';
 			corsHeaders['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With';
 			corsHeaders['Access-Control-Allow-Credentials'] = 'true';
 			corsHeaders['Access-Control-Max-Age'] = '86400'; // Cache preflight requests for 24 hours
