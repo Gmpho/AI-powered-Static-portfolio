@@ -128,7 +128,7 @@ function isRecruiterWhitelisted(email: string, whitelist: string | undefined): b
 }
 
 export default {
-	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+	async fetch(request: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
 		const origin = request.headers.get('Origin') || '';
 		const allowedOrigins = (env.ALLOWED_ORIGINS || 'https://gmpho.github.io').split(',').map(s => s.trim()).filter(Boolean);
 		const isAllowed = origin && (allowedOrigins.includes(origin) || allowedOrigins.includes('*'));
@@ -161,6 +161,7 @@ export default {
 
 		// Handle preflight
 		if (request.method === 'OPTIONS') {
+			console.log('Handling OPTIONS request. CORS Headers:', JSON.stringify(corsHeaders));
 			return new Response(null, {
 				status: 204,
 				headers: {
