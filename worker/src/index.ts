@@ -130,46 +130,55 @@ function isRecruiterWhitelisted(email: string, whitelist: string | undefined): b
 export default {
 	async fetch(request: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
 		const origin = request.headers.get('Origin') || '';
-		const allowedOrigins = (env.ALLOWED_ORIGINS || 'https://gmpho.github.io').split(',').map(s => s.trim()).filter(Boolean);
-		const isAllowed = origin && (allowedOrigins.includes(origin) || allowedOrigins.includes('*'));
+		const allowedOriginsString = env.ALLOWED_ORIGINS || (env.ENVIRONMENT === 'production' ? 'https://gmpho.github.io' : 'http://localhost:5173,https://gmpho.github.io');
+		const allowedOrigins = allowedOriginsString.split(',').map(s => s.trim()).filter(Boolean);
+		const isAllowed = origin ? allowedOrigins.includes(origin) || allowedOrigins.includes('*') : false;
 
-		    console.log('--- CORS DEBUGGING ---');
-		    console.log(`Request Origin: ${origin}`);
-		    console.log(`Allowed Origins from Env: ${env.ALLOWED_ORIGINS}`);
-		    console.log(`Parsed Allowed Origins: ${allowedOrigins.join(', ')}`);
-		    console.log(`Is Origin Allowed: ${isAllowed}`);
-		    console.log('----------------------');
+		console.log('--- CORS DEBUGGING ---');
+		console.log(`Request Origin: ${origin}`);
+		console.log(`Allowed Origins from Env: ${env.ALLOWED_ORIGINS}`);
+		console.log(`Parsed Allowed Origins: ${allowedOrigins.join(', ')}`);
+		console.log(`Is Origin Allowed: ${isAllowed}`);
+		console.log('----------------------');
+
+		const baseCorsHeaders: HeadersInit = {
+			'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+			'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+			'Access-Control-Max-Age': '86400', // Cache preflight requests for 24 hours
+		};
+
+		const corsHeaders: HeadersInit = { ...baseCorsHeaders };
+		if (isAllowed) {
+			corsHeaders['Access-Control-Allow-Origin'] = origin;
+			corsHeaders['Access-Control-Allow-Credentials'] = 'true';
+		}
+
+		// Handle preflight (OPTIONS) requests
+		if (request.method === 'OPTIONS') {
+			// Always respond to OPTIONS with permissive headers to allow browser preflight checks.
+			// The actual request will be validated by the `isAllowed` check below.
+			const preflightHeaders = {
+				...baseCorsHeaders,
+				'Access-Control-Allow-Origin': origin, // Echo back the origin
+				'Access-Control-Allow-Credentials': 'true',
+			};
+			console.log('Handling OPTIONS request. Responding with headers:', JSON.stringify(preflightHeaders));
+			return new Response(null, { status: 204, headers: preflightHeaders });
+		}
+
+		// For actual requests, block if the origin is not allowed.
+		if (origin && !isAllowed) {
+			return createErrorResponse(`CORS error: Origin ${origin} is not allowed.`, 403);
+		}
+		
 		const connectSrc = `'self' https://api.cloudflare.com ${env.VITE_WORKER_URL ? new URL(env.VITE_WORKER_URL).origin : ''}`;
 		const securityHeaders: HeadersInit = {
-			'Content-Security-Policy': `default-src 'self'; script-src 'self' https://www.googletagmanager.com; style-src 'self' https://fonts.googleapis.com 'sha256-k5XIPg4LZqX54os5EJ1isWXPsHx/TxPYW8FMPJXzvWU='; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src ${connectSrc};`,
+			'Content-Security-Policy': `default-src 'self'; script-src 'self' https://www.googletagmanager.com; style-src 'self' https://fonts.googleapis.com 'sha26-k5XIPg4LZqX54os5EJ1isWXPsHx/TxPYW8FMPJXzvWU='; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src ${connectSrc};`,
 			'X-Frame-Options': 'DENY',
 			'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
 			'Referrer-Policy': 'no-referrer-when-downgrade',
 			'Cross-Origin-Embedder-Policy': 'require-corp',
 		};
-
-		const corsHeaders: HeadersInit = {};
-		if (isAllowed) {
-			            corsHeaders['Access-Control-Allow-Origin'] = origin;			corsHeaders['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS';
-			corsHeaders['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With';
-			corsHeaders['Access-Control-Allow-Credentials'] = 'true';
-			corsHeaders['Access-Control-Max-Age'] = '86400'; // Cache preflight requests for 24 hours
-		} else if (origin && !isAllowed) {
-			// Explicitly block requests from disallowed origins
-			return createErrorResponse('Forbidden', 403, corsHeaders, securityHeaders);
-		}
-
-		// Handle preflight
-		if (request.method === 'OPTIONS') {
-			console.log('Handling OPTIONS request. CORS Headers:', JSON.stringify(corsHeaders));
-			return new Response(null, {
-				status: 204,
-				headers: {
-					...corsHeaders,
-					...securityHeaders,
-				},
-			});
-		}
 
 		const url = new URL(request.url);
 

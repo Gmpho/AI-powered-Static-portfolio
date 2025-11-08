@@ -44,25 +44,27 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event: serve from cache first, then network
 self.addEventListener('fetch', (event) => {
-  // Only cache GET requests
+  // For non-GET requests, do not intercept. Let the browser handle it.
   if (event.request.method !== 'GET') {
-    return;
+    return; // This allows the request (e.g., POST to the worker) to proceed to the network.
   }
 
+  // For GET requests, use a cache-first strategy.
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      // Return cached response if found
+      // If the response is in the cache, return it.
       if (cachedResponse) {
         return cachedResponse;
       }
 
-      // Otherwise, fetch from network and cache the response
+      // Otherwise, fetch from the network.
       return fetch(event.request).then((response) => {
-        // Don't cache opaque responses (e.g., from other origins without CORS)
+        // Don't cache opaque responses or errors.
         if (!response || response.status !== 200 || response.type !== 'basic') {
           return response;
         }
 
+        // Clone the response and cache it.
         const responseToCache = response.clone();
         caches.open(CACHE_NAME).then((cache) => {
           cache.put(event.request, responseToCache);
@@ -70,9 +72,9 @@ self.addEventListener('fetch', (event) => {
 
         return response;
       }).catch((error) => {
-        console.error('Fetch failed:', error);
-        // Optionally, return an offline page here
-        // return caches.match('/offline.html');
+        console.error('Fetch failed; returning offline fallback if available.', error);
+        // Optionally, return a fallback page for failed GET requests.
+        // For example: return caches.match('/offline.html');
       });
     })
   );

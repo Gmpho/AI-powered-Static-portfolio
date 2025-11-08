@@ -57,6 +57,7 @@ export async function handleChat(request: Request, env: Env, corsHeaders: Header
                 const encoder = new TextEncoder();
 
                 try {
+                    console.log(`Sending prompt to Gemini: "${prompt}"`); // DEBUG
                     const result = await withRetries(() => chat.sendMessageStream(prompt));
 
                     for await (const chunk of result.stream) {
