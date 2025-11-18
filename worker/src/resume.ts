@@ -5,7 +5,7 @@
  */
 
 import { Env } from './index';
-import { jsonResponse, createErrorResponse } from './index'; // Assuming these are in index.ts
+import { createErrorResponse } from './index'; // Assuming these are in index.ts
 import { safeLog } from './security-utils';
 
 // In a real application, you would generate a secure, time-limited signed URL
@@ -33,9 +33,9 @@ async function generateSignedUrl(env: Env, resumeFileName: string): Promise<stri
   return `${baseUrl}${resumeFileName}?expires=${expiry}&signature=${signature}`;
 }
 
-export async function handleResumeRequest(request: Request, env: Env, corsHeaders: HeadersInit, securityHeaders: HeadersInit): Promise<Response> {
+export async function handleResumeRequest(c: any, request: Request, env: Env): Promise<Response> {
   if (request.method !== 'GET') {
-    return createErrorResponse('Method Not Allowed', 405, corsHeaders, securityHeaders);
+    return createErrorResponse(c, 'Method Not Allowed', 405);
   }
 
   try {
@@ -50,13 +50,13 @@ export async function handleResumeRequest(request: Request, env: Env, corsHeader
 
     const signedUrl = await generateSignedUrl(env, resumeFileName);
 
-    return jsonResponse({
+    return c.json({
       summary: shortSummary,
       downloadUrl: signedUrl,
-    }, 200, { ...corsHeaders, ...securityHeaders });
+    }, 200);
 
   } catch (error: any) {
     safeLog('Error handling resume request', 'error', { error: error.message, stack: error.stack });
-    return createErrorResponse('Sorry, I’m having trouble retrieving the resume right now.', 500, corsHeaders, securityHeaders);
+    return createErrorResponse(c, 'Sorry, I’m having trouble retrieving the resume right now.', 500);
   }
 }

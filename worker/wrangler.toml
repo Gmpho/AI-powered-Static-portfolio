@@ -10,3 +10,7 @@ compatibility_date = "2025-09-15"
 [dev]
 port = 8787
 inspector_port = 0
+
+[assets]
+directory = "../dist"
+binding = "ASSETS"

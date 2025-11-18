@@ -1,48 +1,12 @@
-import { sendPrompt } from "./chatbot";
+import { sendPrompt } from "./src/chatbot";
 import DOMPurify from 'dompurify';
 import { fetchResumeData, displayPdfEmbed } from "./src/resume"; // Import resume functions
 import { getTranslation } from "./src/i18n"; // Import getTranslation
 import { setAriaLiveRegion } from "./src/accessibility"; // Import setAriaLiveRegion
-
-interface ContactFormWorkerResponse {
-  status: "sent" | "failed";
-  info?: string;
-}
-
-async function sendContactFormToWorker(
-  name: string,
-  email: string,
-  message: string,
-): Promise<ContactFormWorkerResponse> {
-  const workerUrl = import.meta.env.VITE_WORKER_URL?.replace(/\/$/, '');
-
-  if (!workerUrl) {
-    console.error("Configuration error: VITE_WORKER_URL is not set.");
-    return { status: "failed", info: "Configuration error" };
-  }
-
-  try {
-    const response = await fetch(`${workerUrl}/contact`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, message }),
-    });
-
-    const data: ContactFormWorkerResponse = await response.json();
-
-    if (!response.ok) {
-      return {
-        status: "failed",
-        info: data.info || `Request failed with status ${response.status}`,
-      };
-    }
-
-    return data;
-  } catch (error) {
-    console.error("Failed to send contact form to worker:", error);
-    return { status: "failed", info: "Network error or worker unavailable" };
-  }
-}
+import { projects } from "./projects";
+import { stateService } from "./stateService";
+import { marked } from 'marked';
+import hljs from 'highlight.js';
 
 // --- DOM Element References ---
 const projectsContainer = document.querySelector(".projects");
@@ -55,29 +19,7 @@ const chatForm = document.getElementById("chatbot-form");
 const chatInput = document.getElementById("chatbot-input") as HTMLInputElement;
 const sendBtn = document.getElementById("chatbot-send") as HTMLButtonElement;
 const micBtn = document.getElementById("chatbot-mic") as HTMLButtonElement;
-const contactBtn = document.querySelector(".contact-btn");
-console.log('Contact button found:', contactBtn);
 const themeToggleBtn = document.getElementById("theme-toggle");
-
-// --- Constants ---
-const CHAT_HISTORY_KEY = "chatHistory";
-
-// Event listener for the main contact button
-contactBtn?.addEventListener('click', () => {
-  console.log('Contact button clicked!');
-  // Open the chatbot window if it's not already visible
-  if (!chatWindow?.classList.contains('visible')) {
-    chatWindow?.classList.add('visible');
-    (chatWindow as HTMLElement).inert = false;
-    fab?.setAttribute("aria-label", "Close chat");
-    chatInput?.focus();
-  }
-  // Directly display the contact form
-  displayContactForm();
-});
-
-import { projects } from "./projects";
-import { stateService } from "./stateService"; // Import stateService
 
 /**
  * Renders project cards into the projects container.
@@ -116,82 +58,47 @@ async function renderProjects(limit?: number) {
     }
   }
 }
-function renderMarkdownToHtml(markdownText: string): string {
-  const lines = markdownText.split("\n");
-  let html = '';
-  let inCodeBlock = false;
 
-  lines.forEach((line, index) => {
-    // Code Block detection
-    if (line.startsWith("```")) {
-      if (inCodeBlock) {
-        html += '</code></pre>';
-        inCodeBlock = false;
-      } else {
-        html += '<pre><code>';
-        inCodeBlock = true;
-      }
-      return; // Skip processing this line further
-    }
 
-    if (inCodeBlock) {
-      html += line + '\n';
-      return; // Continue collecting lines for code block
-    }
-
-    // Blockquote detection
-    if (line.startsWith(">")) {
-      html += `<blockquote>${line.substring(1).trim()}</blockquote>`;
-      return; // Skip further processing for this line
-    }
-
-    // Add line break if not the first line and not inside a code block
-    if (index > 0 && !inCodeBlock) html += '<br>';
-
-    // Basic markdown for bullet points (* text)
-    const bulletMatch = line.match(/^\s*\*\s(.*)/);
-    if (bulletMatch) {
-      html += `<ul><li>${bulletMatch[1]}</li></ul>`;
-      return; // Continue to next line
-    }
-
-    // Regex to split by markdown links and bold text
-    const regex = /(\*\*.*?\*\*)|(\[.*?\]\(.*?\))/g;
-    const parts = line.split(regex).filter((part) => part);
-
-    let lineHtml = '';
-    parts.forEach((part) => {
-      // Bold text: **text**
-      if (part.startsWith("**") && part.endsWith("**")) {
-        lineHtml += `<strong>${part.slice(2, -2)}</strong>`;
-      }
-      // Link: [text](url)
-      else if (part.startsWith("[") && part.includes("](")) {
-        const linkMatch = part.match(/\[(.*?)\]\((.*?)\)/);
-        if (linkMatch) {
-          lineHtml += `<a href="${linkMatch[2]}" target="_blank" rel="noopener noreferrer">${linkMatch[1]}</a>`;
-        } else {
-          lineHtml += part;
-        }
-      } else {
-        lineHtml += part;
-      }
-    });
-    html += lineHtml;
-  });
-
-  // Close any open code block
-  if (inCodeBlock) {
-    html += '</code></pre>';
-  }
-
-  return html;
-}
 
 /**
  * Renders the interactive contact form inside a message bubble and attaches its event listener.
  * @param {HTMLElement} bubble - The message bubble element to render the form into.
  */
+interface ContactFormWorkerResponse {
+  status: "sent" | "failed";
+  info?: string;
+}
+
+async function sendContactFormToWorker(
+  name: string,
+  email: string,
+  message: string,
+): Promise<ContactFormWorkerResponse> {
+  // Use relative path due to proxy
+  try {
+    const response = await fetch(`/contact`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, message }),
+    });
+
+    const data: ContactFormWorkerResponse = await response.json();
+
+    if (!response.ok) {
+      return {
+        status: "failed",
+        info: data.info || `Request failed with status ${response.status}`,
+      };
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Failed to send contact form to worker:", error);
+    return { status: "failed", info: "Network error or worker unavailable" };
+  }
+}
+
 function renderContactFormInBubble(bubble: HTMLElement) {
   bubble.innerHTML = `
     <div class="contact-form-container">
@@ -253,135 +160,34 @@ function renderContactFormInBubble(bubble: HTMLElement) {
   }
 }
 
-/**
- * Adds a message to the chat window.
- * @param {string} text - The message text to display.
- * @param {'user' | 'bot' | 'loading'} sender - The sender of the message.
- * @returns {HTMLElement} The created message element.
- */
-function addMessage(
-  text: string,
-  sender: "user" | "bot" | "loading",
-  isHtml: boolean = false,
-  type?: string, // Add type parameter
-): HTMLElement {
-  const messageEl = document.createElement("div");
-  messageEl.classList.add("message", sender);
+function renderChatHistory() {
+  if (!chatMessages) return;
+  chatMessages.innerHTML = ''; // Clear existing messages
+  stateService.getState().chatHistory.forEach(msg => {
+    const messageEl = document.createElement("div");
+    messageEl.classList.add("message", msg.sender);
 
-  const bubble = document.createElement("div");
-  bubble.classList.add("message-bubble");
+    const bubble = document.createElement("div");
+    bubble.classList.add("message-bubble");
 
-  if (type === 'contactForm') {
-    renderContactFormInBubble(bubble);
-  } else if (sender === "loading") {
-    bubble.innerHTML = `<div class="dot-flashing" aria-label="${getTranslation('loading')}"></div>`; // Use getTranslation for aria-label
-  } else if (sender === "bot" && text === "") {
-    // For streaming bot messages, initially create an empty bubble
-    // Content will be appended by appendMessageChunk
-  }
-      else {
-        // Sanitize the text before rendering to prevent XSS
-        const sanitizedText = DOMPurify.sanitize(text);
-        if (isHtml) {
-          bubble.innerHTML = sanitizedText; // Render trusted HTML directly
-        } else {
-          bubble.innerHTML = renderMarkdownToHtml(sanitizedText); // Render markdown to HTML
-        }
-  }
-  messageEl.appendChild(bubble);
-  chatMessages?.appendChild(messageEl);
+    if (msg.type === 'contactForm') {
+      renderContactFormInBubble(bubble);
+    } else if (msg.sender === "loading") {
+      bubble.innerHTML = `<div class="dot-flashing" aria-label="${getTranslation('loading')}"></div>`;
+    } else {
+      const sanitizedHtml = DOMPurify.sanitize(marked.parse(msg.text) as string);
+      bubble.innerHTML = sanitizedHtml;
+    }
+    messageEl.appendChild(bubble);
+    chatMessages?.appendChild(messageEl);
+  });
   if (chatMessages) {
     requestAnimationFrame(() => {
       chatMessages.scrollTop = chatMessages.scrollHeight;
     });
   }
-  return messageEl;
 }
 
-/**
- * Renders the entire chat history from the state service.
- */
-function renderChatHistory() {
-  if (!chatMessages) return;
-  chatMessages.innerHTML = ''; // Clear existing messages
-  stateService.getState().chatHistory.forEach(msg => {
-    addMessage(msg.text, msg.sender, msg.html || false, msg.type);
-  });
-}
-
-/**
- * Appends a text chunk to the last bot message in the chat window.
- * This is used for streaming responses.
- * @param {HTMLElement} messageEl - The message element to append to.
- * @param {string} chunk - The text chunk to append.
- */
-function appendMessageChunk(messageEl: HTMLElement, chunk: string) {
-  const bubble = messageEl.querySelector(".message-bubble");
-  if (bubble) {
-    const currentText = bubble.textContent || '';
-    const newText = currentText + chunk;
-    bubble.innerHTML = renderMarkdownToHtml(DOMPurify.sanitize(newText));
-
-    // Scroll to bottom
-    if (chatMessages) {
-      requestAnimationFrame(() => {
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-      });
-    }
-  }
-}
-
-
-
-/**
- * Creates and displays the contact form within the chat window.
- */
-function displayContactForm() {
-  // Add a special message to the state that represents the form.
-  // The rendering logic will handle creating the actual form.
-  stateService.addMessage({
-    text: 'Please fill out the form below.', // This text is for state debugging
-    sender: 'bot',
-    type: 'contactForm',
-  });
-}
-
-/**
- * Displays a dismissible error banner at the top of the page.
- * @param {string} message - The error message to display.
- */
-function displayError(message: string) {
-  // Remove any existing error banner first
-  const existingBanner = document.querySelector('.error-banner');
-  if (existingBanner) {
-    existingBanner.remove();
-  }
-
-  const errorBanner = document.createElement('div');
-  errorBanner.className = 'error-banner';
-  errorBanner.setAttribute('role', 'alert');
-  errorBanner.innerHTML = `
-    <span>${message}</span>
-    <button class="error-banner-close" aria-label="${getTranslation('closeError')}">&times;</button>
-  `;
-
-  document.body.appendChild(errorBanner);
-
-  const closeButton = errorBanner.querySelector('.error-banner-close');
-  closeButton?.addEventListener('click', () => {
-    errorBanner.remove();
-  });
-
-  // Automatically remove the banner after 10 seconds
-  setTimeout(() => {
-    errorBanner.remove();
-  }, 10000);
-}
-
-/**
- * Handles the chat form submission.
- * @param {Event} e - The form submission event.
- */
 async function handleChatSubmit(e: Event) {
   e.preventDefault();
   if (!chatInput || chatInput.value.trim() === "") return;
@@ -395,7 +201,6 @@ async function handleChatSubmit(e: Event) {
 
   await sendPrompt(
     userMessage,
-    undefined,
     (chunk) => {
       // Append the chunk to the last message in the state
       const lastMessage = stateService.getState().chatHistory.slice(-1)[0];
@@ -418,7 +223,7 @@ async function handleChatSubmit(e: Event) {
       let errorMessage = getTranslation('chatbotErrorConnecting', error);
       // Attempt to parse the error string if it's a JSON response from the worker
       try {
-        const errorMatch = error.match(/Request failed: \d+ - (.*)/);
+        const errorMatch = error.match(/HTTP error! status: \d+ - (.*)/);
         if (errorMatch && errorMatch[1]) {
           const errorObj = JSON.parse(errorMatch[1]);
           if (errorObj.error) {
@@ -541,9 +346,14 @@ function sleep(ms: number) {
 
 // When the DOM is fully loaded, render projects and load chat history.
 document.addEventListener("DOMContentLoaded", async () => {
+  console.log('DOMContentLoaded event fired');
   // Listen for the custom event dispatched by the chatbot stream
   document.addEventListener('display-contact-form', () => {
-    displayContactForm();
+    stateService.addMessage({
+      text: 'Please fill out the form below.', // This text is for state debugging
+      sender: 'bot',
+      type: 'contactForm',
+    });
   });
 
   await renderProjects(3);
@@ -557,11 +367,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Subscribe to state changes and perform an initial render
   stateService.subscribe(() => {
+    console.log('State change detected, re-rendering chat history');
     renderChatHistory();
   });
-  setTimeout(() => {
-    renderChatHistory(); // Initial render
-  }, 0);
+  renderChatHistory(); // Initial render
+
 
   // Set initial theme based on saved preference or system setting
   const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;

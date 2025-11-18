@@ -1,9 +1,15 @@
-import { GoogleGenerativeAI, Part } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { Context, Hono } from 'hono';
+import { cache } from 'hono/cache';
+import { cors } from 'hono/cors';
+import { csrf } from 'hono/csrf';
+import { secureHeaders } from 'hono/secure-headers';
+import { serveStatic } from 'hono/serve-static';
 import { checkRateLimit } from './rateLimiter';
-import { checkGuardrails } from './guardrails'; // Import checkGuardrails
+import { checkGuardrails } from './guardrails';
 import { ContactFormSchema, GenerateEmbeddingRequestSchema } from './schemas';
-import { handleChat } from './chat'; // Import handleChat
-import { handleResumeRequest } from './resume'; // Import handleResumeRequest
+import { handleResumeRequest } from './resume';
+import { handleChat } from './chat';
 
 interface Project {
 	title: string;
@@ -16,17 +22,19 @@ interface Project {
 	export interface Env {
 	GEMINI_API_KEY: string;
 	GEMINI_SYSTEM_PROMPT: string;
-	ALLOWED_ORIGINS?: string;
+	ALLOWED_ORIGINS: string;
 	RATE_LIMIT_KV: KVNamespace;
 	        PROJECT_EMBEDDINGS_KV: KVNamespace;
         PROJECT_SEARCH_SIMILARITY_THRESHOLD?: string;
 	EMBEDDING_SECRET?: string; // Added EMBEDDING_SECRET
+	EMBEDDING_API_KEY?: string; // Added for embedding endpoint authentication
 	RESUME_SIGNER_SECRET?: string; // Added RESUME_SIGNER_SECRET
 	TURNSTILE_SECRET_KEY?: string; // Added for Turnstile verification
 	RECRUITER_WHITELIST_EMAIL?: string; // Added for recruiter whitelist
 	VITE_WORKER_URL?: string; // Added VITE_WORKER_URL	        // Ensure this KV namespace is bound in your worker's environment.
 	        // If not bound, embedding-related functionalities will be disabled or throw errors.
 	ENVIRONMENT?: string;
+	ASSETS: Fetcher;
 }
 
 interface ContactFormRequest {
@@ -47,19 +55,11 @@ interface EmbeddingRequest {
 	text: string;
 }
 
-// Helper to create a structured JSON response
-export const jsonResponse = (data: object, status: number, headers: HeadersInit = {}) => {
-	return new Response(JSON.stringify(data), {
-		status,
-		headers: { 'Content-Type': 'application/json', ...headers },
-	});
-};
 
-export const createErrorResponse = (message: string, status: number, corsHeaders: HeadersInit = {}, securityHeaders: HeadersInit = {}) => {
-	return new Response(JSON.stringify({ error: message }), {
-		status,
-		headers: { 'Content-Type': 'application/json', ...corsHeaders, ...securityHeaders },
-	});
+// We will adapt createErrorResponse to work with Hono's context
+export const createErrorResponse = (c: any, message: string, status: number) => {
+	console.error(`createErrorResponse: Message: ${message}, Status: ${status}`);
+	return c.json({ error: message }, status);
 };
 
 async function validateGeminiKey(apiKey: string): Promise<boolean> {
@@ -127,264 +127,225 @@ function isRecruiterWhitelisted(email: string, whitelist: string | undefined): b
   return whitelistedEmails.includes(email.toLowerCase());
 }
 
-export default {
-	async fetch(request: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
-		const origin = request.headers.get('Origin') || '';
-		const allowedOriginsString = env.ALLOWED_ORIGINS || (env.ENVIRONMENT === 'production' ? 'https://gmpho.github.io' : 'http://localhost:5173,https://gmpho.github.io');
-		const allowedOrigins = allowedOriginsString.split(',').map(s => s.trim()).filter(Boolean);
-		const isAllowed = origin ? allowedOrigins.includes(origin) || allowedOrigins.includes('*') : false;
+// Helper function to determine MIME type
+function getMimeType(filename: string): string {
+  const ext = filename.split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'html': return 'text/html';
+    case 'css': return 'text/css';
+    case 'js': return 'application/javascript';
+    case 'json': return 'application/json';
+    case 'png': return 'image/png';
+    case 'jpg': return 'image/jpeg';
+    case 'jpeg': return 'image/jpeg';
+    case 'gif': return 'image/gif';
+    case 'svg': return 'image/svg+xml';
+    case 'ico': return 'image/x-icon';
+    case 'webp': return 'image/webp';
+    case 'webmanifest': return 'application/manifest+json';
+    default: return 'application/octet-stream';
+  }
+}
 
-		console.log('--- CORS DEBUGGING ---');
-		console.log(`Request Origin: ${origin}`);
-		console.log(`Allowed Origins from Env: ${env.ALLOWED_ORIGINS}`);
-		console.log(`Parsed Allowed Origins: ${allowedOrigins.join(', ')}`);
-		console.log(`Is Origin Allowed: ${isAllowed}`);
-		console.log('----------------------');
+const app = new Hono<{ Bindings: Env }>();
 
-		const baseCorsHeaders: HeadersInit = {
-			'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-			'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-			'Access-Control-Max-Age': '86400', // Cache preflight requests for 24 hours
-		};
-
-		const corsHeaders: HeadersInit = { ...baseCorsHeaders };
-		if (isAllowed) {
-			corsHeaders['Access-Control-Allow-Origin'] = origin;
-			corsHeaders['Access-Control-Allow-Credentials'] = 'true';
+app.use('*', cors({
+	origin: (origin, c) => {
+		const allowedOriginsString = c.env.ALLOWED_ORIGINS || (c.env.ENVIRONMENT === 'production' ? 'https://gmpho.github.io' : 'http://localhost:5173,https://gmpho.github.io');
+		const allowedOrigins = allowedOriginsString.split(',').map((s: string) => s.trim()).filter(Boolean);
+		console.log(`CORS check: Incoming origin: ${origin}, Allowed origins: ${allowedOrigins.join(', ')}`);
+		if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+			console.log(`CORS check: Origin ${origin} is allowed.`);
+			return origin;
 		}
+		console.log(`CORS check: Origin ${origin} is NOT allowed.`);
+		return 'null'; // Deny if not in allowed list
+	},
+	allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+	allowMethods: ['GET', 'POST', 'OPTIONS'],
+	exposeHeaders: ['Content-Length', 'X-Kuma-Revision'],
+	maxAge: 86400,
+	credentials: true,
+}));
 
-		// Handle preflight (OPTIONS) requests
-		if (request.method === 'OPTIONS') {
-			// Always respond to OPTIONS with permissive headers to allow browser preflight checks.
-			// The actual request will be validated by the `isAllowed` check below.
-			const preflightHeaders = {
-				...baseCorsHeaders,
-				'Access-Control-Allow-Origin': origin, // Echo back the origin
-				'Access-Control-Allow-Credentials': 'true',
-			};
-			console.log('Handling OPTIONS request. Responding with headers:', JSON.stringify(preflightHeaders));
-			return new Response(null, { status: 204, headers: preflightHeaders });
-		}
+app.use('*', secureHeaders());
+app.post('/chat', async (c) => handleChat(c, c.req.raw, c.env));
 
-		// For actual requests, block if the origin is not allowed.
-		if (origin && !isAllowed) {
-			return createErrorResponse(`CORS error: Origin ${origin} is not allowed.`, 403);
-		}
-		
-		const connectSrc = `'self' https://api.cloudflare.com ${env.VITE_WORKER_URL ? new URL(env.VITE_WORKER_URL).origin : ''}`;
-		const securityHeaders: HeadersInit = {
-			'Content-Security-Policy': `default-src 'self'; script-src 'self' https://www.googletagmanager.com; style-src 'self' https://fonts.googleapis.com 'sha26-k5XIPg4LZqX54os5EJ1isWXPsHx/TxPYW8FMPJXzvWU='; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src ${connectSrc};`,
-			'X-Frame-Options': 'DENY',
-			'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
-			'Referrer-Policy': 'no-referrer-when-downgrade',
-			'Cross-Origin-Embedder-Policy': 'require-corp',
-		};
+app.get('/chat', (c) => {
+	return c.json({
+		error: 'Method Not Allowed',
+		message: 'This endpoint is for the chatbot and only accepts POST requests.',
+		suggestion:
+			"Please use the portfolio's chat interface to interact with the bot.",
+	}, 405);
+});
 
-		const url = new URL(request.url);
+// Explicitly return 404 for sw.js and manifest.json as they are not used
+app.get('/AI-powered-Static-portfolio/sw.js', (c) => {
+  return c.notFound();
+});
 
-		if (url.pathname === '/') {
-			const htmlResponse = `
-                <!DOCTYPE html>
-                <html lang="en">
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>API Status</title>
-                    <style>
-                        html, body { height: 100%; width: 100%; }
-                        body { font-family: sans-serif; display: grid; place-items: center; height: 100vh; margin: 0; background-color: #f0f2f5; }
-                        .container { max-width: 400px; margin: auto; text-align: center; padding: 2rem; background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-                        h1 { color: #1c1e21; }
-                        p { color: #606770; }
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <h1>✅ API Worker is Running</h1>
-                        <p>This is the backend API for the AI Portfolio. It only responds to POST requests at the /chat endpoint.</p>
-                    </div>
-                </body>
-                </html>
-            `;
-			return new Response(htmlResponse, {
-				status: 200,
-				headers: { 'Content-Type': 'text/html', ...corsHeaders, ...securityHeaders },
-			});
-		}
+app.get('/AI-powered-Static-portfolio/manifest.json', (c) => {
+  return c.notFound();
+});
 
-		if (url.pathname === '/health') {
-			const geminiKeyValid = await validateGeminiKey(env.GEMINI_API_KEY);
-			const kvStatus = env.RATE_LIMIT_KV ? 'connected' : 'disconnected';
-			return jsonResponse(
-				{
-					status: 'ok',
-					geminiKey: geminiKeyValid ? 'valid' : 'invalid',
-					kvStatus: kvStatus,
-				},
-				200,
-				{ ...corsHeaders, ...securityHeaders },
-			);
-		}
+// Serve static assets from the '/AI-powered-Static-portfolio/assets/*' path
+app.use('/AI-powered-Static-portfolio/assets/*', serveStatic({
+  rewriteRequestPath: (path) => {
+    const newPath = path.replace(/^\/AI-powered-Static-portfolio/, '');
+    console.log(`Rewriting asset path: ${path} to ${newPath}`);
+    return newPath;
+  },
+  getContent: async (path, c) => {
+    const assetPath = path.startsWith('/') ? path : `/${path}`; // Ensure path starts with /
+    console.log(`Fetching asset from ASSETS binding: ${assetPath}`);
+    const response = await (c.env as Env).ASSETS.fetch(new Request(new URL(assetPath, c.req.url)));
+    const mimeType = getMimeType(assetPath);
+    const headers = new Headers(response.headers);
+    headers.set('Content-Type', mimeType);
+    console.log(`Fetched asset: ${assetPath}, Original Content-Type: ${response.headers.get('Content-Type')}, Set Content-Type: ${mimeType}`);
+    return new Response(response.body, { status: response.status, headers });
+  },
+}));
 
-		// Apply server-side rate-limiting
-		const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
-		const rateLimitResult = await checkRateLimit(clientIp, env);
+// SPA fallback: serve index.html for all other routes under '/AI-powered-Static-portfolio/*'
+app.get('/AI-powered-Static-portfolio/*', serveStatic({
+  path: 'index.html', // path relative to the ASSETS binding root
+  rewriteRequestPath: (path) => {
+    const newPath = path.replace(/^\/AI-powered-Static-portfolio/, '');
+    console.log(`Rewriting SPA fallback path: ${path} to ${newPath}`);
+    return newPath;
+  },
+  getContent: async (path, c) => {
+    const assetPath = path.startsWith('/') ? path : `/${path}`; // Ensure path starts with /
+    console.log(`Fetching SPA fallback from ASSETS binding: ${assetPath}`);
+    const response = await (c.env as Env).ASSETS.fetch(new Request(new URL(assetPath, c.req.url)));
+    const mimeType = getMimeType(assetPath);
+    const headers = new Headers(response.headers);
+    headers.set('Content-Type', mimeType);
+    console.log(`Fetched SPA fallback: ${assetPath}, Original Content-Type: ${response.headers.get('Content-Type')}, Set Content-Type: ${mimeType}`);
+    return new Response(response.body, { status: response.status, headers });
+  },
+}));
 
-		if (!rateLimitResult.allowed) {
-			return createErrorResponse('Too Many Requests', 429, {
-				'Retry-After': rateLimitResult.retryAfter?.toString() || '60',
-				...corsHeaders,
-			}, securityHeaders);
-		}
+// Catch-all for the root path and anything not matched above, serving the worker status HTML
+app.get('/*', (c) => {
+  const htmlResponse = `
+    <!doctype html>
+    <html lang="en" class="fouc-hidden">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>API Status - AI-Powered Portfolio Worker</title>
+        <style>
+          :root {
+            --color-primary: #4f46e5;
+            --color-primary-hover: #4338ca;
+            --color-primary-light: #eef2ff;
+            --color-primary-disabled: #a5b4fc;
+            --color-primary-rgb: 79, 70, 229; /* RGB for #4f46e5 */
 
-		        		        if (url.pathname === '/contact') {
+            --color-bg: #f8fafc;
+            --color-surface: #ffffff;
+            --color-surface-rgb: 255, 255, 255; /* RGB for #ffffff */
+            --color-surface-alt: #f1f5f9;
+            --color-border: #e2e8f0;
+            --color-shadow: rgba(0, 0, 0, 0.05);
 
-		        		            if (request.method !== 'POST') {
+            --color-text-primary: #1e293b;
+            --color-text-secondary: #64748b;
+            --color-text-on-primary: #ffffff;
 
-		        		                return createErrorResponse('Method Not Allowed', 405, corsHeaders, securityHeaders);
+            --color-danger: #ef4444;
+            --color-danger-glow: rgba(239, 68, 68, 0.4);
+          }
 
-		        		            }
+          [data-theme="dark"] {
+            --color-primary: #6366f1;
+            --color-primary-hover: #4f46e5;
+            --color-primary-light: #3730a3;
+            --color-primary-disabled: #4f46e5;
+            --color-primary-rgb: 99, 102, 241; /* RGB for #6366f1 */
 
-		        			            try {
+            --color-bg: #0f172a;
+            --color-surface: #1e293b;
+            --color-surface-rgb: 30, 41, 59; /* RGB for #1e293b */
+            --color-surface-alt: #334155;
+            --color-border: #475569;
+            --color-shadow: rgba(0, 0, 0, 0.2);
 
-		        			                const requestBody = await request.json();
+            --color-text-primary: #f1f5f9;
+            --color-text-secondary: #94a3b8;
+            --color-text-on-primary: #ffffff;
 
-		        			                const validationResult = ContactFormSchema.safeParse(requestBody);
+            --color-danger: #f87171;
+            --color-danger-glow: rgba(248, 113, 113, 0.4);
+          }
 
-		        			
+          * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+          }
 
-		        			                if (!validationResult.success) {
+          body {
+            font-family: "Inter", sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text-primary);
+            line-height: 1.6;
+            transition:
+              background-color 0.3s ease,
+              color 0.3s ease;
+            display: grid;
+            place-items: center;
+            min-height: 100vh;
+            text-align: center;
+          }
 
-		        			                    return createErrorResponse(`Invalid contact form data: ${JSON.stringify(validationResult.error.flatten().fieldErrors)}`, 400, corsHeaders, securityHeaders);
+          .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 2rem;
+          }
 
-		        			                }
+          .status-card {
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 0.75rem;
+            padding: 3rem;
+            box-shadow: 0 4px 6px -1px var(--color-shadow);
+            max-width: 400px;
+            margin: 2rem auto;
+          }
 
-		        			
+          .status-card h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            color: var(--color-text-primary);
+          }
 
-		        			                const { name, email, message, 'cf-turnstile-response': turnstileToken } = validationResult.data;
+          .status-card p {
+            font-size: 1.1rem;
+            color: var(--color-text-secondary);
+            margin-bottom: 1.5rem;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="status-card">
+            <h1>✅ AI-Powered Portfolio Worker is Running</h1>
+            <p>This is the backend API for the AI Portfolio. It only responds to POST requests at the <code style="background-color: var(--color-surface-alt); padding: 0.2em 0.4em; border-radius: 0.25em; font-family: monospace;">/chat</code> endpoint.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+`;
+  return c.html(htmlResponse);
+});
 
-		        			
 
-		                                    // 1. Turnstile Verification
 
-		                                    if (!env.TURNSTILE_SECRET_KEY) {
+export default app;
 
-		                                        console.warn('TURNSTILE_SECRET_KEY is not set. Skipping Turnstile verification.');
-
-		                                    } else if (!turnstileToken) {
-
-		                                        return createErrorResponse('Turnstile token missing.', 400, corsHeaders, securityHeaders);
-
-		                                    } else {
-
-		                                        const clientIp = request.headers.get('CF-Connecting-IP') || undefined;
-
-		                                        const isTurnstileValid = await verifyTurnstileToken(turnstileToken, env.TURNSTILE_SECRET_KEY, clientIp);
-
-		                                        if (!isTurnstileValid) {
-
-		                                            return createErrorResponse('Invalid Turnstile token. Please try again.', 403, corsHeaders, securityHeaders);
-
-		                                        }
-
-		                                    }
-
-		        
-
-		                                    // 2. Recruiter Whitelist Logic
-
-		                                    const isWhitelisted = isRecruiterWhitelisted(email, env.RECRUITER_WHITELIST_EMAIL);
-
-		                                    if (isWhitelisted) {
-
-		                                        console.log(`Whitelisted recruiter email received: ${email}`);
-
-		                                        // Potentially handle whitelisted emails differently, e.g., forward to a specific inbox
-
-		                                    }
-
-		        			
-
-		        							// In a real application, you would integrate with an email sending service here.
-
-		        							// For this example, we'll just simulate a successful send.
-
-		        							console.log(`Received contact form submission:\nName: ${name.replace(/\s/g, ' ')}\nEmail: ${email.replace(/\s/g, ' ')}\nMessage: ${message.replace(/\s/g, ' ')}`);
-
-		        			
-
-		        							// Simulate a delay for sending email
-
-		        							await new Promise((resolve) => setTimeout(resolve, 1000));
-
-		        			
-
-		        							// Simulate success
-
-		        							return jsonResponse({ status: 'sent' }, 200, { ...corsHeaders, ...securityHeaders });
-
-		        						} catch (error) {
-
-		        							console.error('Error processing contact form submission:', error);
-
-		        							return createErrorResponse('Sorry, I’m having trouble answering that right now.', 500, corsHeaders, securityHeaders);
-
-		        						}		}
-
-		if (url.pathname === '/resume') {
-			return handleResumeRequest(request, env, corsHeaders, securityHeaders);
-		}
-
-		if (url.pathname === '/api/generateEmbedding') {
-			if (request.method !== 'POST') {
-				return createErrorResponse('Method Not Allowed', 405, corsHeaders, securityHeaders);
-			}
-
-			if (!env.GEMINI_API_KEY) {
-				console.error('GEMINI_API_KEY is not set.');
-				return createErrorResponse('Missing server configuration', 500, corsHeaders, securityHeaders);
-			}
-
-			try {
-				                const requestBody = await request.json();
-				                const validationResult = GenerateEmbeddingRequestSchema.safeParse(requestBody);
-				
-				                if (!validationResult.success) {
-				                    return createErrorResponse(`Invalid request body: ${JSON.stringify(validationResult.error.flatten().fieldErrors)}`, 400, corsHeaders, securityHeaders);
-				                }
-				
-				                const { text } = validationResult.data;
-				// Apply guardrails to the incoming text
-				if (checkGuardrails(text)) {
-					return createErrorResponse('I am sorry, I cannot process that request.', 400, corsHeaders, securityHeaders);
-				}
-
-				const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
-				const model = genAI.getGenerativeModel({ model: 'embedding-001' }); // Use the embedding model
-
-				const result = await model.embedContent(text);
-				const embedding = result.embedding.values;
-
-				return jsonResponse({ embedding }, 200, { ...corsHeaders, ...securityHeaders });
-			            } catch (error: any) {
-							if (error.status === 429) {
-								console.warn('Quota exceeded for embedding generation.');
-								return createErrorResponse('Quota exceeded for embedding generation. Please try again later.', 429, corsHeaders, securityHeaders);
-							}
-			                console.error('Error generating embedding:', error);
-			                return createErrorResponse('Sorry, I’m having trouble generating the embedding right now.', 500, corsHeaders, securityHeaders);
-			            }		}
-
-											if (url.pathname === '/chat') {
-															
-												return handleChat(request, env, corsHeaders, securityHeaders);
-															
-											}														
-				
-																// Default to 404 Not Found for any unhandled paths
-				
-																return createErrorResponse('Not Found', 404, corsHeaders, securityHeaders);
-				
-																	}
-				
-														} satisfies ExportedHandler<Env>;

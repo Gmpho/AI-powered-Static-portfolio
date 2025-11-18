@@ -5,12 +5,13 @@ import { cloudflare } from '@cloudflare/vite-plugin';
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => {
   const isProduction = command === 'build';
-  const base = isProduction ? "/AI-powered-Static-portfolio/" : "";
+  // Set base dynamically: '/' for development, '/AI-powered-Static-portfolio/' for build (e.g., GitHub Pages)
+  const base = isProduction ? '/AI-powered-Static-portfolio/' : '/';
 
   return {
-    plugins: [],
+    plugins: [cloudflare({ configPath: "../worker/wrangler.toml" })],
     root: "./frontend", // Set the root to the frontend directory
-    base: base, // Dynamically set base path
+    base: base, // Use the dynamically set base path
     build: {
       outDir: "../dist", // Output to a `dist` folder in the project root
       emptyOutDir: true, // Clean the output directory before building
@@ -25,16 +26,12 @@ export default defineConfig(({ command }) => {
       },
     },
     server: {
-      headers: {
-        'X-Content-Type-Options': 'nosniff',
-        'X-Frame-Options': 'DENY',
-        'Cross-Origin-Opener-Policy': 'same-origin',
-        'Cross-Origin-Embedder-Policy': 'require-corp',
-      },
+
       fs: {
         // Allow serving files from one level up to the project root
         allow: ['..']
-      }
+      },
+
     },
   };
 });

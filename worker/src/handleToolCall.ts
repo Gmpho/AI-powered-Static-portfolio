@@ -1,7 +1,7 @@
 import { FunctionCall, Part } from '@google/generative-ai';
 import { projectSearch, projectSearchArgsSchema } from './tools/projectSearch';
 import { Env } from './index';
-import { jsonResponse, createErrorResponse } from './index';
+import { createErrorResponse } from './index';
 
 /**
  * Handles a function call from the Gemini model.
@@ -15,7 +15,7 @@ import { jsonResponse, createErrorResponse } from './index';
 export async function handleToolCall(
     functionCall: FunctionCall,
     env: Env,
-    corsHeaders: HeadersInit
+    c: any
 ): Promise<Part | Response> {
     console.log(`handleToolCall: Received tool call for '${functionCall.name}'`);
 
@@ -24,7 +24,7 @@ export async function handleToolCall(
             try {
                 const parsedArgs = projectSearchArgsSchema.safeParse(functionCall.args);
                 if (!parsedArgs.success) {
-                    return createErrorResponse(`Invalid arguments for projectSearch: ${parsedArgs.error.message}`, 400, corsHeaders);
+                    return createErrorResponse(c, `Invalid arguments for projectSearch: ${parsedArgs.error.message}`, 400);
                 }
                 // Pass the entire parsedArgs.data object to projectSearch
                 console.log(`handleToolCall: Calling projectSearch with args:`, parsedArgs.data);
@@ -44,7 +44,7 @@ export async function handleToolCall(
                 };
             } catch (error: any) {
                 console.error('handleToolCall: Error in projectSearch:', error);
-                return createErrorResponse(`Error during project search: ${error.message || error}`, 500, corsHeaders);
+                return createErrorResponse(c, `Error during project search: ${error.message || error}`, 500);
             }
 
         case 'displayContactForm':
@@ -62,6 +62,6 @@ export async function handleToolCall(
 
         default:
             console.log(`handleToolCall: Unknown tool '${functionCall.name}'.`);
-            return createErrorResponse(`Unknown tool: ${functionCall.name}`, 400, corsHeaders);
+            return createErrorResponse(c, `Unknown tool: ${functionCall.name}`, 400);
     }
 }

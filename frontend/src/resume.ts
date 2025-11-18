@@ -4,7 +4,8 @@
  * and can be extended to display a PDF embed.
  */
 
-import env from './env';
+// No longer importing env as VITE_WORKER_URL is handled by proxy
+// import env from './env';
 
 interface ResumeSummary {
   title: string;
@@ -18,15 +19,9 @@ interface ResumeData {
 }
 
 export async function fetchResumeData(): Promise<ResumeData | null> {
-  const workerUrl = env.VITE_WORKER_URL?.replace(/\/$/, '');
-
-  if (!workerUrl) {
-    console.error("Configuration error: VITE_WORKER_URL is not set.");
-    return null;
-  }
-
+  // Use relative path due to proxy
   try {
-    const response = await fetch(`${workerUrl}/resume`);
+    const response = await fetch(`/resume`);
 
     if (!response.ok) {
       const errorText = await response.text();

@@ -13,9 +13,9 @@ interface ChatRequest {
 	history?: any[];
 }
 
-export async function handleChat(request: Request, env: Env, corsHeaders: HeadersInit, securityHeaders: HeadersInit): Promise<Response> {
+export async function handleChat(c: any, request: Request, env: Env): Promise<Response> {
     if (request.method !== 'POST') {
-        return createErrorResponse('Method Not Allowed', 405, corsHeaders, securityHeaders);
+        return createErrorResponse(c, 'Method Not Allowed', 405);
     }
 
     // Diagnostic logging for Gemini configuration
@@ -27,18 +27,18 @@ export async function handleChat(request: Request, env: Env, corsHeaders: Header
         const validationResult = ChatEndpointRequestSchema.safeParse(requestBody);
 
         if (!validationResult.success) {
-            return createErrorResponse(`Invalid request body: ${JSON.stringify(validationResult.error.flatten().fieldErrors)}`, 400, corsHeaders, securityHeaders);
+            return createErrorResponse(c, `Invalid request body: ${JSON.stringify(validationResult.error.flatten().fieldErrors)}`, 400);
         }
 
         const { prompt, history = [] } = validationResult.data;
 
         if (checkGuardrails(prompt)) {
-            return createErrorResponse('I am sorry, I cannot process that request.', 400, corsHeaders, securityHeaders);
+            return createErrorResponse(c, 'I am sorry, I cannot process that request.', 400);
         }
 
         if (!env.GEMINI_API_KEY) {
             console.error('GEMINI_API_KEY is missing from environment');
-            return createErrorResponse('Server configuration error: Gemini API key not configured', 500, corsHeaders, securityHeaders);
+            return createErrorResponse(c, 'Server configuration error: Gemini API key not configured', 500);
         }
 
         const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
@@ -70,7 +70,7 @@ export async function handleChat(request: Request, env: Env, corsHeaders: Header
                                 break; // End the stream here.
                             }
 
-                            const toolResult = await handleToolCall(functionCall, env, corsHeaders);
+                            const toolResult = await handleToolCall(functionCall, env, c);
                             if (toolResult instanceof Response) {
                                 console.warn("handleToolCall returned a direct Response, which cannot be processed in the current streaming implementation.");
                                 controller.enqueue(encoder.encode(`event: error\ndata: {"error": "Tool returned a direct response, which is not supported in streaming mode."}\n\n`));
@@ -83,7 +83,7 @@ export async function handleChat(request: Request, env: Env, corsHeaders: Header
                                 const text = chunk2.text();
                                 const sanitizedText = sanitizeOutput(text);
                                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ response: sanitizedText })}
-
+ 
 `));
                             }
 
@@ -91,7 +91,7 @@ export async function handleChat(request: Request, env: Env, corsHeaders: Header
                             const text = chunk.text();
                             const sanitizedText = sanitizeOutput(text);
                             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ response: sanitizedText })}
-
+ 
 `));
                         }
                     }
@@ -99,30 +99,29 @@ export async function handleChat(request: Request, env: Env, corsHeaders: Header
                     console.error('Error during chat streaming:', error);
                     controller.enqueue(encoder.encode(`event: error
 data: {"error": "An error occurred while processing your request."}
-
+ 
 `));
                 } finally {
                     controller.enqueue(encoder.encode(`event: completion
 data: {}
-
+ 
 `));
                     controller.close();
                 }
             },
         });
 
-        return new Response(stream, {
-            headers: {
-                'Content-Type': 'text/event-stream',
-                'Cache-Control': 'no-cache',
-                'Connection': 'keep-alive',
-                ...corsHeaders,
-                ...securityHeaders,
-            },
-        });
+        const headers = {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            // CORS and Security Headers are handled by Hono middleware
+        };
+        console.log('Response Headers for /chat:', headers);
+        return new Response(stream, { headers });
 
     } catch (error) {
         console.error('Error in handleChat:', error);
-        return createErrorResponse('Sorry, I’m having trouble processing that right now.', 500, corsHeaders, securityHeaders);
+        return createErrorResponse(c, 'Sorry, I’m having trouble processing that right now.', 500);
     }
 }

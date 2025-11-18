@@ -1,35 +1,10 @@
-/**
- * Defines the structure for a thought signature, typically used to convey
- * intermediate AI thoughts or processing states from the worker.
- */
-interface ThoughtSignature {
-  // Define properties based on what the worker sends
-  // For now, let's assume it's a string or an object with a text property
-  text?: string;
-  // Add other properties if needed
-}
+import { ChatMessage } from "./src/types";
 
 // 1. Define the shape of our application's state
-export interface ChatMessage {
-  id: string;
-  text: string;
-  sender: "user" | "bot";
-  html?: boolean; // Flag to indicate if the text is pre-formatted HTML
-  isStreaming?: boolean; // New: Flag to indicate if the message is currently being streamed
-  lastThoughtSignature?: ThoughtSignature; // New property
-  type?: string; // New: Optional property to categorize message types (e.g., 'contactForm')
-}
-
-/**
- * Defines the overall application state managed by the StateService.
- */
 interface AppState {
   chatHistory: ChatMessage[];
   isLoading: boolean;
   error: string | null; // New: Add error state
-  isThinking: boolean;
-  isThinkingModeEnabled: boolean; // New property
-  lastThoughtSignature?: ThoughtSignature; // New property
 }
 
 // 2. Define the type for our listener functions
@@ -49,13 +24,12 @@ class StateService {
     chatHistory: [],
     isLoading: false,
     error: null, // New: Initialize error state
-    isThinking: false,
-    isThinkingModeEnabled: false, // Initialize new property
   };
   private listeners: StateListener[] = [];
 
   private constructor() {
     // Private constructor to enforce singleton pattern
+    console.log('StateService initialized');
     this.loadChatHistoryFromSessionStorage(); // Load history on initialization
   }
 
@@ -73,11 +47,13 @@ class StateService {
 
   // Method for components to subscribe to state changes
   public subscribe(listener: StateListener) {
+    console.log('New listener subscribed to state changes');
     this.listeners.push(listener);
   }
 
   // Method to notify all listeners of a state change
   private notify() {
+    console.log(`Notifying ${this.listeners.length} listeners of state change`);
     for (const listener of this.listeners) {
       listener(this.getState());
     }
@@ -96,17 +72,8 @@ class StateService {
     this.notify();
   }
 
-  public setThinking(isThinking: boolean) {
-    this.state.isThinking = isThinking;
-    this.notify();
-  }
-
-  public setThinkingModeEnabled(isEnabled: boolean) {
-    this.state.isThinkingModeEnabled = isEnabled;
-    this.notify();
-  }
-
   public addMessage(message: Omit<ChatMessage, 'id'>) {
+    console.log('Adding new message:', message.text);
     const lastMessage = this.state.chatHistory[this.state.chatHistory.length - 1];
 
     // If the last message is a streaming bot message, append to it
@@ -127,6 +94,7 @@ class StateService {
   }
 
   public updateLastMessage(updates: Partial<ChatMessage>) {
+    console.log('Updating last message with:', updates.text);
     const lastMessage = this.state.chatHistory[this.state.chatHistory.length - 1];
     if (lastMessage) {
       Object.assign(lastMessage, updates);
