@@ -1,4 +1,4 @@
-name = "ai-powered-static-portfolio-worker"
+name = "ai-powered-static-portfolio-worker-v2"
 main = "src/index.ts"
 compatibility_date = "2025-09-15"
 
