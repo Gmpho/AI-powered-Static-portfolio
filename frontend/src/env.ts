@@ -5,13 +5,20 @@
  */
 
 interface EnvConfig {
-  // VITE_WORKER_URL: string; // Removed as proxy handles it
+  VITE_WORKER_URL: string;
   VITE_ANALYTICS_ENABLED?: boolean;
   // Add other environment variables here as needed
 }
 
+const getWorkerUrl = () => {
+    if (window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1')) {
+        return 'http://localhost:8787';
+    }
+    return import.meta.env.VITE_WORKER_URL;
+}
+
 const env: EnvConfig = {
-  // VITE_WORKER_URL: import.meta.env.VITE_WORKER_URL || 'http://localhost:8787', // Removed as proxy handles it
+  VITE_WORKER_URL: getWorkerUrl(),
   VITE_ANALYTICS_ENABLED: import.meta.env.VITE_ANALYTICS_ENABLED === 'true',
 };
 

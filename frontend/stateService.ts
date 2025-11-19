@@ -94,7 +94,7 @@ class StateService {
   }
 
   public updateLastMessage(updates: Partial<ChatMessage>) {
-    console.log('Updating last message with:', updates.text);
+    console.log('Updating last message with:', updates);
     const lastMessage = this.state.chatHistory[this.state.chatHistory.length - 1];
     if (lastMessage) {
       Object.assign(lastMessage, updates);

@@ -1,4 +1,5 @@
-<!doctype html>
+export const statusPageHtml = `
+    <!doctype html>
     <html lang="en" class="fouc-hidden">
       <head>
         <meta charset="UTF-8" />
@@ -108,3 +109,4 @@
         </div>
       </body>
     </html>
+`;

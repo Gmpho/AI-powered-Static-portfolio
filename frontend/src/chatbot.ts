@@ -3,8 +3,10 @@ import { getTranslation as t } from './i18n';
 
 const MAX_DEPTH = 5;
 
+import env from './env';
+
 function getWorkerURL(endpoint: string): string {
-	const url = import.meta.env.VITE_WORKER_URL;
+	const url = env.VITE_WORKER_URL;
 	if (!url) {
 		console.error(t('missingWorkerUrl'));
 		throw new Error(t('missingWorkerUrl'));

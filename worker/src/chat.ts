@@ -43,7 +43,7 @@ export async function handleChat(c: any, request: Request, env: Env): Promise<Re
 
         const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
         const model = genAI.getGenerativeModel({
-            model: 'gemini-2.0-flash',
+            model: 'gemini-2.5-flash',
             systemInstruction: env.GEMINI_SYSTEM_PROMPT,
             tools: [{
                 functionDeclarations: [projectSearchSchema, displayContactFormSchema],
