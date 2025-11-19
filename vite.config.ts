@@ -9,7 +9,6 @@ export default defineConfig(({ command }) => {
   const base = isProduction ? '/AI-powered-Static-portfolio/' : '/';
 
   return {
-    plugins: [cloudflare({ configPath: "../worker/wrangler.toml" })],
     root: "./frontend", // Set the root to the frontend directory
     base: base, // Use the dynamically set base path
     build: {
