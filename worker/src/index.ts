@@ -34,9 +34,9 @@ interface Project {
 	RECRUITER_WHITELIST_EMAIL?: string; // Added for recruiter whitelist
 	VITE_WORKER_URL?: string; // Added VITE_WORKER_URL	        // Ensure this KV namespace is bound in your worker's environment.
 	        // If not bound, embedding-related functionalities will be disabled or throw errors.
-	ENVIRONMENT?: string;
-	ASSETS: Fetcher;
-}
+		ENVIRONMENT?: string;
+		ASSETS: Fetcher;
+	}
 
 interface ContactFormRequest {
 	name: string;
@@ -122,31 +122,58 @@ async function verifyTurnstileToken(token: string, secretKey: string, ip?: strin
 }
 
 // Function to check if an email is in the recruiter whitelist
+
 function isRecruiterWhitelisted(email: string, whitelist: string | undefined): boolean {
+
   if (!whitelist) return false;
+
   const whitelistedEmails = whitelist.split(',').map(e => e.trim().toLowerCase());
+
   return whitelistedEmails.includes(email.toLowerCase());
+
 }
 
+
+
 // Helper function to determine MIME type
+
 function getMimeType(filename: string): string {
+
   const ext = filename.split('.').pop()?.toLowerCase();
+
   switch (ext) {
+
     case 'html': return 'text/html';
+
     case 'css': return 'text/css';
+
     case 'js': return 'application/javascript';
+
     case 'json': return 'application/json';
+
     case 'png': return 'image/png';
+
     case 'jpg': return 'image/jpeg';
+
     case 'jpeg': return 'image/jpeg';
+
     case 'gif': return 'image/gif';
+
     case 'svg': return 'image/svg+xml';
+
     case 'ico': return 'image/x-icon';
+
     case 'webp': return 'image/webp';
+
     case 'webmanifest': return 'application/manifest+json';
+
     default: return 'application/octet-stream';
+
   }
+
 }
+
+
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -187,6 +214,10 @@ app.get('/chat', (c) => {
 			"Please use the portfolio's chat interface to interact with the bot.",
 	}, 405);
 });
+
+
+
+
 
 // Explicitly return 404 for sw.js and manifest.json as they are not used
 app.get('/AI-powered-Static-portfolio/sw.js', (c) => {

@@ -7,10 +7,10 @@ compatibility_date = "2025-09-15"
 # [[kv_namespaces]]
 # ...
 
-[dev]
-port = 8787
-inspector_port = 0
-
 [assets]
 directory = "../dist"
 binding = "ASSETS"
+
+[dev]
+port = 8787
+inspector_port = 0
