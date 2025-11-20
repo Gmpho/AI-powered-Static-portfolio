@@ -11,10 +11,24 @@ interface EnvConfig {
 }
 
 const getWorkerUrl = () => {
+    // For local development, always use the local worker URL
     if (window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1')) {
         return 'http://localhost:8787';
     }
-    return import.meta.env.VITE_WORKER_URL;
+
+    // Get the worker URL that was *intended* at build time.
+    const buildTimeWorkerUrl = import.meta.env.VITE_WORKER_URL;
+
+    // If the frontend is currently hosted at the same origin as the worker
+    // that was configured at build time, then use a relative path.
+    // This handles the scenario where the worker is self-hosting the frontend.
+    if (window.location.origin === buildTimeWorkerUrl) {
+        return '';
+    }
+
+    // Otherwise, use the absolute worker URL provided at build time.
+    // This handles scenarios like GitHub Pages where the worker is external.
+    return buildTimeWorkerUrl;
 }
 
 const env: EnvConfig = {
