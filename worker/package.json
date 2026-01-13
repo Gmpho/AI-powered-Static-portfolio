@@ -12,7 +12,7 @@
 	},
 	"dependencies": {
 		"@google/generative-ai": "^0.24.1",
-		"hono": "^4.10.4",
+		"hono": "^4.11.4",
 		"wrangler": "^4.46.0",
 		"zod": "^3.23.8"
 	},
