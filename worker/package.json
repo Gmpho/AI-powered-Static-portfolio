@@ -12,12 +12,12 @@
 	},
 	"dependencies": {
 		"@google/generative-ai": "^0.24.1",
-		"hono": "^4.10.4",
-		"wrangler": "^4.46.0",
+		"hono": "^4.12.7",
+		"wrangler": "^4.72.0",
 		"zod": "^3.23.8"
 	},
 	"devDependencies": {
-		"@cloudflare/vitest-pool-workers": "^0.9.13",
+		"@cloudflare/vitest-pool-workers": "^0.12.21",
 		"@playwright/test": "^1.56.1",
 		"@types/node": "^24.7.2",
 		"typescript": "^5.9.3",
