@@ -1,5 +1,5 @@
 {
   "dependencies": {
-    "dompurify": "^3.2.7"
+    "dompurify": "^3.3.2"
   }
 }
